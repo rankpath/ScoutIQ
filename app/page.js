@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 const navItems = ['Dashboard', 'Analyze', 'Competitors', 'Content', 'Ads Library', 'Reports', 'Settings']
+const navIcons = { Dashboard:'⌂', Analyze:'◉', Competitors:'♙', Content:'▤', 'Ads Library':'✦', Reports:'◔', Settings:'⚙' }
 const defaultCompetitors = ['inZ Hospital', 'Lovely Eye & Skin', 'Beproud Clinic']
 const demoScores = [82, 79, 74]
 
@@ -37,6 +38,19 @@ function displayBusinessName(value, fallback) {
     }
   } catch {}
   return clean.length > 34 ? `${clean.slice(0, 31)}…` : clean
+}
+
+function ScoutLogo() {
+  return <div className="brandLockup">
+    <svg className="scoutLogoMark" viewBox="0 0 64 64" role="img" aria-label="ScoutIQ logo">
+      <defs><linearGradient id="scoutGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#2563EB"/><stop offset="1" stopColor="#7C3AED"/></linearGradient></defs>
+      <circle cx="31" cy="33" r="7" fill="url(#scoutGradient)"/>
+      <path d="M31 16a17 17 0 1 0 17 17" fill="none" stroke="url(#scoutGradient)" strokeWidth="5.5" strokeLinecap="round"/>
+      <path d="M31 7A26 26 0 1 0 57 33" fill="none" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" opacity=".96"/>
+      <path d="M36 5c12 2 21 12 23 24" fill="none" stroke="url(#scoutGradient)" strokeWidth="5.5" strokeLinecap="round"/>
+    </svg>
+    <div className="brandText"><strong>Scout<span>IQ</span></strong><small>From Data to Next Move.</small></div>
+  </div>
 }
 
 export default function Home() {
@@ -77,14 +91,14 @@ export default function Home() {
   return (
     <div className="appShell">
       <aside className="sidebar">
-        <div className="brand"><span className="brandMark">◈</span><span>ScoutIQ</span></div>
-        <nav>{navItems.map(item => <button key={item} type="button" className={activePage === item ? 'active' : ''} onClick={() => setActivePage(item)}>{item}</button>)}</nav>
-        <div className="sideCard"><strong>ScoutIQ Beta</strong><p>Competitor intelligence workspace.</p><span>Prototype mode</span></div>
+        <ScoutLogo />
+        <nav>{navItems.map(item => <button key={item} type="button" className={activePage === item ? 'active' : ''} onClick={() => setActivePage(item)}><span className="navIcon">{navIcons[item]}</span><span className="navLabel">{item}</span></button>)}</nav>
+        <div className="sideCard"><small>FIND THE SIGNAL. MAKE THE MOVE.</small><strong>Smarter Decisions.<br/>Brighter Tomorrow.</strong><p>Turn scattered social data into clear opportunities and next actions.</p><span>ScoutIQ Beta</span></div>
       </aside>
 
       <main className="main">
         <header className="topbar">
-          <div><small>SOCIAL INTELLIGENCE</small><h1>{activePage === 'Dashboard' ? 'Hello, AdsCraft 👋' : activePage}</h1></div>
+          <div><small>SOCIAL & BUSINESS INTELLIGENCE</small><h1>{activePage === 'Dashboard' ? 'Good morning, AdsCraft!' : activePage}</h1></div>
           <div className="account"><div className="avatar">A</div><div><b>AdsCraft Digital</b><span>ScoutIQ Workspace</span></div></div>
         </header>
 
@@ -101,15 +115,20 @@ export default function Home() {
 function Dashboard({ url, setUrl, runAnalysis, setActivePage, comparison }) {
   return <>
     <section className="hero panel">
-      <h2>Know what competitors are doing before your next move.</h2>
-      <p>Analyze Facebook pages, compare activity and turn social data into clear actions.</p>
-      <div className="searchBox"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze</button></div>
+      <div className="heroGlow heroGlowOne"/><div className="heroGlow heroGlowTwo"/>
+      <div className="heroContent">
+        <small>FIND THE SIGNAL. MAKE THE MOVE.</small>
+        <h2>Turn signals into <span>opportunities.</span></h2>
+        <p className="heroPromise">See the opportunities others miss.</p>
+        <p>Analyze Facebook pages, compare competitors and turn social data into clear next actions.</p>
+        <div className="searchBox"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze</button></div>
+      </div>
     </section>
 
     <section className="featureGrid">
-      <Feature icon="⌕" title="Analyze Any Page" text="Turn a Facebook URL into a quick score." onClick={runAnalysis} />
+      <Feature icon="◎" title="Analyze Any Page" text="Turn a Facebook URL into a quick score." onClick={runAnalysis} />
       <Feature icon="♙" title="Compare Competitors" text="Input three businesses and compare them." onClick={()=>setActivePage('Competitors')} />
-      <Feature icon="▤" title="Track Ads" text="Open the Ads Library module status." onClick={()=>setActivePage('Ads Library')} />
+      <Feature icon="◫" title="Track Ads" text="Open the Ads Library module status." onClick={()=>setActivePage('Ads Library')} />
       <Feature icon="✦" title="Get Actionable Tips" text="Open analysis to see recommendations." onClick={runAnalysis} />
     </section>
 
@@ -149,10 +168,10 @@ function CompetitorsPage({ competitorInputs, updateCompetitor, compareThree, com
       <div className="panelHead"><div><small>SCORING METHOD</small><h2>How ScoutIQ Calculates Your Score</h2></div><span className="pill">What to calculate</span></div>
       <p className="muted" style={{maxWidth:850}}>Compare your business with three competitors across seven factors to reveal strengths, weaknesses, ranking gaps, and recommended actions for improvement.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:18}}>
-        {comparisonFactors.map(factor => <article key={factor.name} style={{border:'1px solid #e6e8f0',borderRadius:14,padding:16,background:'#fafbff'}}>
+        {comparisonFactors.map(factor => <article key={factor.name} className="factorCard">
           <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center'}}><b style={{fontSize:14}}>{factor.name}</b><span className="pill">{factor.weight}%</span></div>
           <p className="muted" style={{fontSize:12,lineHeight:1.5,minHeight:54}}>{factor.description}</p>
-          <span style={{fontSize:11,fontWeight:750,color:'#6747f5'}}>Source: {factor.source}</span>
+          <span className="sourceText">Source: {factor.source}</span>
         </article>)}
       </div>
       <div className="notice"><b>Prototype note:</b> current competitor scores are demo values. Live data will replace them after Metricool + Meta Ads Library integration.</div>
@@ -167,13 +186,13 @@ function AnalyzePage({ url, setUrl, setActivePage, runAnalysis, analysisRuns }) 
     <div className="searchBox topSearch"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze Again</button></div>
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:10}}><span className="pill">{analysisRuns > 0 ? `Demo analysis run ${analysisRuns}` : 'Demo analysis'}</span></div>
 
-    <section className="panel" style={{display:'grid',gridTemplateColumns:'92px 1fr auto',gap:18,alignItems:'center'}}>
-      <div style={{width:82,height:82,borderRadius:18,background:'linear-gradient(135deg,#11192b,#6747f5)',color:'#fff',display:'grid',placeItems:'center',fontSize:32,fontWeight:900}}>Y</div>
-      <div><small>FACEBOOK PAGE</small><h2 style={{margin:'5px 0'}}>Youngdo Clinic</h2><p className="muted" style={{margin:0}}>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p><div style={{marginTop:9,fontSize:12,color:'#6d7485',wordBreak:'break-all'}}>{safeUrl}</div></div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}><a className="secondary" href={safeUrl} target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>Open Facebook ↗</a><button className="secondary" type="button" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></div>
+    <section className="panel pageIdentity">
+      <div className="pageAvatar">Y</div>
+      <div><small>FACEBOOK PAGE</small><h2 style={{margin:'5px 0'}}>Youngdo Clinic</h2><p className="muted" style={{margin:0}}>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p><div className="pageUrl">{safeUrl}</div></div>
+      <div className="pageActions"><a className="secondary" href={safeUrl} target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>Open Facebook ↗</a><button className="secondary" type="button" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></div>
     </section>
 
-    <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12,marginTop:18}}>
+    <section className="metricGrid">
       <MetricCard label="Followers" value="52.4K" change="+3.6%" />
       <MetricCard label="New followers · 7d" value="+1,820" change="+420 vs prior" />
       <MetricCard label="Posts · 7d" value="11" change="7 Reels" />
@@ -183,13 +202,14 @@ function AnalyzePage({ url, setUrl, setActivePage, runAnalysis, analysisRuns }) 
     <section className="twoCol">
       <div className="panel">
         <div className="panelHead"><div><small>FOLLOWER TREND</small><h2>Follower growth · 7 days</h2></div><span className="pill">+3.6%</span></div>
-        <svg viewBox="0 0 360 90" style={{width:'100%',height:150,marginTop:10,overflow:'visible'}} role="img" aria-label="Demo follower trend over seven days">
-          <line x1="0" y1="76" x2="360" y2="76" stroke="#e6e8f0" strokeWidth="1" />
-          <line x1="0" y1="44" x2="360" y2="44" stroke="#f0f1f6" strokeWidth="1" />
-          <polyline points={followerPoints} fill="none" stroke="#6747f5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          {[[0,76],[90,62],[180,48],[270,31],[360,12]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="4" fill="#fff" stroke="#6747f5" strokeWidth="3"/>)}
+        <svg viewBox="0 0 360 90" className="trendChart" role="img" aria-label="Demo follower trend over seven days">
+          <line x1="0" y1="76" x2="360" y2="76" stroke="#E9E8FF" strokeWidth="1" />
+          <line x1="0" y1="44" x2="360" y2="44" stroke="#F1F3FF" strokeWidth="1" />
+          <polyline points={followerPoints} fill="none" stroke="url(#trendGradient)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          <defs><linearGradient id="trendGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#2563EB"/><stop offset="1" stopColor="#7C3AED"/></linearGradient></defs>
+          {[[0,76],[90,62],[180,48],[270,31],[360,12]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="4" fill="#fff" stroke="#5B55F6" strokeWidth="3"/>)}
         </svg>
-        <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#8a90a0'}}><span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Day 5</span><span>Day 6</span><span>Today</span></div>
+        <div className="chartLabels"><span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Day 5</span><span>Day 6</span><span>Today</span></div>
         <p className="muted" style={{fontSize:12,marginTop:14}}>Demo trend. Live version will use available follower history from connected social data.</p>
       </div>
       <div className="panel scorePanel"><small>SCOUTIQ SCORE</small><div className="scoreWrap"><div className="scoreRing"><div><strong>76</strong><span>/100</span></div></div><div className="metricList">{scoreMetrics.map(([m,s])=><div key={m}><span>{m}</span><b>{s}</b></div>)}</div></div></div>
@@ -227,17 +247,17 @@ function ContentPage({ insights, setInsights }) {
   return <section className="panel">
     <div className="panelHead"><div><small>CONTENT INTELLIGENCE</small><h2>Content Insight Vault</h2></div><span className="pill">1 Brand + 3 Competitors · 7 days</span></div>
     <p className="muted" style={{maxWidth:820,marginTop:10}}>ScoutIQ analyzes <b>7 days of content</b> from your brand and 3 competitors, comparing engagement, formats, offers, and winning patterns.</p>
-    <form onSubmit={save} style={{display:'grid',gap:10,margin:'18px 0'}}>
+    <form onSubmit={save} className="insightForm">
       <input style={inputStyle} value={form.business} onChange={e=>setForm({...form,business:e.target.value})} placeholder="Business"/>
       <input style={inputStyle} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Content topic / hook"/>
       <textarea style={{...inputStyle,minHeight:80}} value={form.insight} onChange={e=>setForm({...form,insight:e.target.value})} placeholder="Insight"/>
       <button className="primary" type="submit" style={{width:'fit-content'}}>+ Save Insight</button>
     </form>
-    {insights.map(item=><div key={item.id} style={{borderTop:'1px solid #e6e8f0',padding:'14px 0'}}><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}
+    {insights.map(item=><div key={item.id} className="savedInsight"><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}
   </section>
 }
 
-const inputStyle = {border:'1px solid #e6e8f0',borderRadius:10,padding:'12px',font:'inherit'}
+const inputStyle = {border:'1px solid #E2E6F6',borderRadius:12,padding:'12px',font:'inherit'}
 
 function Placeholder({ title }) {
   return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><span className="pill">Coming soon</span><p className="muted">Navigation works, but this module is not connected to live data yet.</p></section>
@@ -249,14 +269,14 @@ function Feature({icon,title,text,onClick}) {
 
 function ComparisonBars({comparison}) {
   const ranked = [...comparison].sort((a,b)=>Number(b[1])-Number(a[1]))
-  return <div className="bars">{ranked.map(([name,score],index)=><div className="barRow" key={`${name}-${score}`}><span><b style={{marginRight:7,color:index===0?'#6747f5':'#8a90a0'}}>#{index+1}</b>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div>
+  return <div className="bars">{ranked.map(([name,score],index)=><div className="barRow" key={`${name}-${score}`}><span><b className={index===0?'rankTop':'rankMuted'}>#{index+1}</b>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div>
 }
 
 function MetricCard({label,value,change}) {
-  return <div className="panel" style={{padding:18}}><small>{label.toUpperCase()}</small><strong style={{display:'block',fontSize:27,margin:'7px 0 2px'}}>{value}</strong><span style={{fontSize:12,color:'#16a36a',fontWeight:750}}>{change}</span></div>
+  return <div className="panel metricCard"><small>{label.toUpperCase()}</small><strong>{value}</strong><span>{change}</span></div>
 }
 function Detail({label,value}) {
-  return <div style={{display:'grid',gridTemplateColumns:'110px 1fr',gap:12,padding:'11px 0',borderBottom:'1px solid #eef0f5',fontSize:12}}><span className="muted">{label}</span><b style={{wordBreak:'break-all'}}>{value}</b></div>
+  return <div className="detailRow"><span className="muted">{label}</span><b>{value}</b></div>
 }
 function Insight({type,title,text}) {
   return <div className="insight"><span className={type==='up'?'signal up':'signal down'}>{type==='up'?'↗':'↘'}</span><div><b>{title}</b><p>{text}</p></div></div>
