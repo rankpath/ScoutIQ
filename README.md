@@ -1,6 +1,13 @@
 # ScoutIQ
-ScoutIQ is SOCIAL INTELLIGENCE build by ADSCRAFT DIGITAL
+
+ScoutIQ
+Social Media Analytics Platform
+Built by Rank-Path
+FIND THE SIGNAL. MAKE THE MOVE.
+Smarter Decisions.Brighter Tomorrow.
+Turn scattered social data into clear opportunities and next actions.
+
 Preview link : https://scout-iq-eta.vercel.app/
 
 
-note :depoly by mr.vincent 
+Deploy by Ms.Vicky & mr.vincent 
