@@ -12,6 +12,101 @@ const replacements = new Map([
   ['ScoutIQ Beta', 'ScoutIQ v.1'],
 ])
 
+const knownFacebookPages = {
+  'thearthospital.lipo': {
+    name: 'The Art Hospital',
+    username: '@TheArtHospital.Lipo',
+    initial: 'T',
+  },
+}
+
+function setText(el, value) {
+  if (el && value && el.textContent?.trim() !== value) el.textContent = value
+}
+
+function getFacebookProfile() {
+  const facebookInput = [...document.querySelectorAll('input')].find(input =>
+    String(input.value || '').toLowerCase().includes('facebook.com')
+  )
+  if (!facebookInput) return null
+
+  const rawUrl = String(facebookInput.value || '').trim()
+  if (!rawUrl) return null
+
+  try {
+    const parsed = new URL(rawUrl)
+    const parts = parsed.pathname.split('/').filter(Boolean)
+    const slug = decodeURIComponent(parts[0] || '').replace(/^@/, '')
+    if (!slug || ['share', 'profile.php', 'pages'].includes(slug.toLowerCase())) return null
+
+    const known = knownFacebookPages[slug.toLowerCase()]
+    if (known) return { ...known, url: rawUrl }
+
+    const readable = slug
+      .replace(/[._-]+/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, char => char.toUpperCase())
+      .trim()
+
+    return {
+      name: readable || slug,
+      username: `@${slug}`,
+      initial: (readable || slug).charAt(0).toUpperCase(),
+      url: rawUrl,
+    }
+  } catch {
+    return null
+  }
+}
+
+function patchAnalyzeIdentity() {
+  const profile = getFacebookProfile()
+  if (!profile) return
+
+  // English Analyze profile.
+  const enIdentity = document.querySelector('.pageIdentity')
+  if (enIdentity) {
+    setText(enIdentity.querySelector('.pageAvatar'), profile.initial)
+    setText(enIdentity.querySelector('h2'), profile.name)
+
+    const meta = enIdentity.querySelector('p.muted')
+    if (meta) setText(meta, `${profile.username} · Health / Beauty · Bangkok, Thailand`)
+
+    const shownUrl = enIdentity.querySelector('.pageUrl')
+    if (shownUrl) setText(shownUrl, profile.url)
+
+    const openLink = enIdentity.querySelector('a[href]')
+    if (openLink && openLink.getAttribute('href') !== profile.url) openLink.setAttribute('href', profile.url)
+  }
+
+  // Thai Analyze profile.
+  const thIdentity = document.querySelector('.identity.panel')
+  if (thIdentity) {
+    setText(thIdentity.querySelector('.logoBubble'), profile.initial)
+    setText(thIdentity.querySelector('h2'), profile.name)
+
+    const meta = thIdentity.querySelector('p')
+    if (meta) setText(meta, `${profile.username} · Health / Beauty · Bangkok, Thailand`)
+
+    const openLink = thIdentity.querySelector('a[href]')
+    if (openLink && openLink.getAttribute('href') !== profile.url) openLink.setAttribute('href', profile.url)
+  }
+
+  // Keep English Profile signals in sync with the analyzed page.
+  const profileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'Profile signals')
+  const profilePanel = profileHeading?.closest('.panel')
+  if (profilePanel) {
+    const rows = [...profilePanel.children]
+    rows.forEach(row => {
+      const label = row.querySelector?.('span')?.textContent?.trim()
+      const value = row.querySelector?.('b')
+      if (label === 'Page name') setText(value, profile.name)
+      if (label === 'Username') setText(value, profile.username)
+      if (label === 'Page link') setText(value, profile.url)
+    })
+  }
+}
+
 function patchCopy() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   let node
@@ -43,7 +138,7 @@ function patchCopy() {
     if (row.firstElementChild !== scorePanel) row.insertBefore(scorePanel, followerPanel)
   }
 
-  // Add address to Profile signals.
+  // Add address to English Profile signals.
   const profileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'Profile signals')
   const profilePanel = profileHeading?.closest('.panel')
   if (profilePanel && !profilePanel.querySelector('[data-scoutiq-address]')) {
@@ -69,14 +164,29 @@ function patchCopy() {
     if (pageLinkRow) profilePanel.insertBefore(addressRow, pageLinkRow)
     else profilePanel.appendChild(addressRow)
   }
+
+  patchAnalyzeIdentity()
 }
 
 export default function CopyPatch() {
   useEffect(() => {
+    const handleInput = event => {
+      if (event.target?.tagName === 'INPUT') requestAnimationFrame(patchCopy)
+    }
+    const handleClick = () => setTimeout(patchCopy, 0)
+
     patchCopy()
+    document.addEventListener('input', handleInput, true)
+    document.addEventListener('click', handleClick, true)
+
     const observer = new MutationObserver(patchCopy)
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-    return () => observer.disconnect()
+
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('input', handleInput, true)
+      document.removeEventListener('click', handleClick, true)
+    }
   }, [])
 
   return null
