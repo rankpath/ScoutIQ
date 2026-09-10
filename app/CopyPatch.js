@@ -20,27 +20,47 @@ const knownFacebookPages = {
   },
 }
 
+const seededCompetitors = new Set(['inZ Hospital', 'Lovely Eye & Skin', 'Beproud Clinic'])
+const PROFILE_STORAGE_KEY = 'scoutiq-current-facebook-profile'
+
 function setText(el, value) {
   if (el && value && el.textContent?.trim() !== value) el.textContent = value
 }
 
+function rememberProfile(profile) {
+  if (!profile) return
+  try { sessionStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)) } catch {}
+}
+
+function getRememberedProfile() {
+  try {
+    const saved = sessionStorage.getItem(PROFILE_STORAGE_KEY)
+    return saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
 function getFacebookProfile() {
-  const facebookInput = [...document.querySelectorAll('input')].find(input =>
-    String(input.value || '').toLowerCase().includes('facebook.com')
-  )
-  if (!facebookInput) return null
+  // Only use the main Analyze/Dashboard Facebook field, never competitor inputs.
+  const facebookInput = document.querySelector('.searchBox input')
+  if (!facebookInput) return getRememberedProfile()
 
   const rawUrl = String(facebookInput.value || '').trim()
-  if (!rawUrl) return null
+  if (!rawUrl || !rawUrl.toLowerCase().includes('facebook.com')) return getRememberedProfile()
 
   try {
     const parsed = new URL(rawUrl)
     const parts = parsed.pathname.split('/').filter(Boolean)
     const slug = decodeURIComponent(parts[0] || '').replace(/^@/, '')
-    if (!slug || ['share', 'profile.php', 'pages'].includes(slug.toLowerCase())) return null
+    if (!slug || ['share', 'profile.php', 'pages'].includes(slug.toLowerCase())) return getRememberedProfile()
 
     const known = knownFacebookPages[slug.toLowerCase()]
-    if (known) return { ...known, url: rawUrl }
+    if (known) {
+      const profile = { ...known, url: rawUrl }
+      rememberProfile(profile)
+      return profile
+    }
 
     const readable = slug
       .replace(/[._-]+/g, ' ')
@@ -48,14 +68,16 @@ function getFacebookProfile() {
       .replace(/\b\w/g, char => char.toUpperCase())
       .trim()
 
-    return {
+    const profile = {
       name: readable || slug,
       username: `@${slug}`,
       initial: (readable || slug).charAt(0).toUpperCase(),
       url: rawUrl,
     }
+    rememberProfile(profile)
+    return profile
   } catch {
-    return null
+    return getRememberedProfile()
   }
 }
 
@@ -112,6 +134,69 @@ function patchAnalyzeIdentity() {
   // Keep Thai PROFILE SIGNALS / ข้อมูลโปรไฟล์ in sync with the analyzed page.
   const thProfileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'ข้อมูลโปรไฟล์')
   syncProfileSignalRows(thProfileHeading?.closest('.panel'), profile)
+}
+
+function setReactInputValue(input, value) {
+  if (!input) return
+  const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+  descriptor?.set?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function patchCompetitorSetup() {
+  const profile = getFacebookProfile()
+  const headings = [...document.querySelectorAll('h2')]
+  const thHeading = headings.find(el => el.textContent?.trim() === 'เพิ่มคู่แข่ง 3 ธุรกิจ')
+  const enHeading = headings.find(el => el.textContent?.trim() === 'Input 3 businesses')
+  const heading = thHeading || enHeading
+  const panel = heading?.closest('.panel')
+  if (!panel) return
+
+  const intro = panel.querySelector('p.muted')
+  if (intro && profile) {
+    const isThai = Boolean(thHeading)
+    const desiredKey = `${isThai ? 'th' : 'en'}:${profile.name}`
+    if (intro.dataset.scoutiqProfile !== desiredKey) {
+      const label = document.createElement('b')
+      label.textContent = isThai ? 'ธุรกิจของคุณ:' : 'Your business:'
+      const copy = isThai
+        ? ` ${profile.name} · ใส่ชื่อธุรกิจหรือ Facebook Page URL ของคู่แข่ง 3 ราย`
+        : ` ${profile.name} · Enter three competitor business names or Facebook Page URLs.`
+      intro.replaceChildren(label, document.createTextNode(copy))
+      intro.dataset.scoutiqProfile = desiredKey
+    }
+  }
+
+  // Start all three competitor fields blank instead of pre-filling demo competitor names.
+  const competitorInputs = [...panel.querySelectorAll('input')]
+  competitorInputs.forEach(input => {
+    if (input.dataset.scoutiqInitialCleared === 'true') return
+    input.dataset.scoutiqInitialCleared = 'true'
+    if (seededCompetitors.has(String(input.value || '').trim())) {
+      setReactInputValue(input, '')
+    }
+  })
+}
+
+function patchFollowerTrendDemoState() {
+  const followerPanel = [...document.querySelectorAll('.panel')].find(panel =>
+    [...panel.querySelectorAll('small')].some(el => el.textContent?.trim() === 'FOLLOWER TREND')
+  )
+  if (!followerPanel) return
+
+  const heading = followerPanel.querySelector('h2')
+  const isThai = heading?.textContent?.includes('แนวโน้มผู้ติดตาม')
+  const pill = followerPanel.querySelector('.pill')
+  const note = followerPanel.querySelector('p.muted')
+
+  if (isThai) {
+    setText(pill, 'Demo · ยังไม่ใช่ข้อมูลจริง')
+    setText(note, 'ข้อมูลตัวอย่างเท่านั้น — ยังไม่ได้เชื่อม Facebook/Metricool จึงไม่ใช่จำนวนผู้ติดตามจริงของเพจที่วิเคราะห์')
+  } else {
+    setText(pill, 'Demo · Not Live')
+    setText(note, 'Demo data only — Facebook/Metricool live follower history is not connected yet.')
+  }
 }
 
 function patchCopy() {
@@ -173,6 +258,8 @@ function patchCopy() {
   }
 
   patchAnalyzeIdentity()
+  patchCompetitorSetup()
+  patchFollowerTrendDemoState()
 }
 
 export default function CopyPatch() {
