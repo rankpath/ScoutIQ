@@ -2,12 +2,8 @@
 
 import { useState } from 'react'
 
-const competitors = [
-  ['Youngdo Clinic', 76],
-  ['inZ Hospital', 82],
-  ['Lovely Eye & Skin', 79],
-  ['Beproud Clinic', 74],
-]
+const defaultCompetitors = ['inZ Hospital', 'Lovely Eye & Skin', 'Beproud Clinic']
+const demoCompetitorScores = [82, 79, 74]
 
 const metrics = [
   ['Facebook SEO', 72],
@@ -19,9 +15,43 @@ const metrics = [
   ['Competitor Position', 71],
 ]
 
+function displayBusinessName(value, fallback) {
+  const clean = (value || '').trim()
+  if (!clean) return fallback
+  try {
+    if (clean.startsWith('http')) {
+      const parsed = new URL(clean)
+      const parts = parsed.pathname.split('/').filter(Boolean)
+      return parts[parts.length - 1] || parsed.hostname
+    }
+  } catch {}
+  return clean.length > 28 ? `${clean.slice(0, 25)}…` : clean
+}
+
 export default function Home() {
   const [url, setUrl] = useState('https://www.facebook.com/share/1DdhEhqgRU/')
   const [showResult, setShowResult] = useState(false)
+  const [competitorInputs, setCompetitorInputs] = useState(defaultCompetitors)
+  const [competitors, setCompetitors] = useState(defaultCompetitors)
+
+  const comparison = [
+    ['Youngdo Clinic', 76],
+    ...competitors.map((name, index) => [displayBusinessName(name, `Competitor ${index + 1}`), demoCompetitorScores[index]]),
+  ]
+
+  const updateCompetitor = (index, value) => {
+    setCompetitorInputs(current => current.map((item, i) => i === index ? value : item))
+  }
+
+  const compareThree = () => {
+    setCompetitors([...competitorInputs])
+    document.getElementById('benchmark')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const openCompetitors = () => {
+    setShowResult(false)
+    setTimeout(() => document.getElementById('competitors')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  }
 
   return (
     <div className="appShell">
@@ -29,7 +59,7 @@ export default function Home() {
         <div className="brand"><span className="brandMark">◈</span><span>ScoutIQ</span></div>
         <nav>
           {['Dashboard','Analyze','Competitors','Content','Ads Library','Reports','Settings'].map((item, i) => (
-            <button key={item} className={i===0 ? 'active' : ''}>{item}</button>
+            <button key={item} className={i===0 ? 'active' : ''} onClick={item === 'Competitors' ? openCompetitors : undefined}>{item}</button>
           ))}
         </nav>
         <div className="sideCard">
@@ -70,11 +100,35 @@ export default function Home() {
               ))}
             </section>
 
-            <section className="twoCol">
+            <section id="competitors" className="panel competitorPanel">
+              <div className="panelHead">
+                <div><small>COMPETITORS</small><h2>Input 3 businesses</h2></div>
+                <span className="pill">Manual input</span>
+              </div>
+              <p className="competitorIntro"><b>Your business:</b> Youngdo Clinic · Add three competitors by business name or Facebook Page URL.</p>
+              <div className="competitorInputs">
+                {competitorInputs.map((value, index) => (
+                  <label className="fieldGroup" key={index}>
+                    <span>Competitor {index + 1}</span>
+                    <input
+                      value={value}
+                      onChange={(e) => updateCompetitor(index, e.target.value)}
+                      placeholder={`Business ${index + 1} name or Facebook URL`}
+                    />
+                  </label>
+                ))}
+                <div className="compareActions">
+                  <button className="primary" onClick={compareThree}>Compare 3</button>
+                  <span>Demo scores stay fixed until live data is connected.</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="twoCol" id="benchmark">
               <div className="panel">
                 <div className="panelHead"><div><small>BENCHMARK</small><h2>Competitor comparison</h2></div><span className="pill">Last 7 days</span></div>
                 <div className="bars">
-                  {competitors.map(([name,score]) => <div className="barRow" key={name}><span>{name}</span><div className="track"><i style={{width:`${score}%`}} /></div><b>{score}</b></div>)}
+                  {comparison.map(([name,score]) => <div className="barRow" key={`${name}-${score}`}><span>{name}</span><div className="track"><i style={{width:`${score}%`}} /></div><b>{score}</b></div>)}
                 </div>
               </div>
               <div className="panel">
@@ -95,7 +149,7 @@ export default function Home() {
             <section className="identity panel">
               <div className="logoBubble">Y</div>
               <div className="grow"><h2>Youngdo Clinic</h2><p>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p></div>
-              <button className="secondary">Add to competitors</button>
+              <button className="secondary" onClick={openCompetitors}>Add to competitors</button>
             </section>
 
             <section className="twoCol">
