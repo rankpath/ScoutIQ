@@ -59,6 +59,19 @@ function getFacebookProfile() {
   }
 }
 
+function syncProfileSignalRows(panel, profile) {
+  if (!panel || !profile) return
+
+  const rows = [...panel.querySelectorAll('.metricList > div, :scope > div:not(.panelHead)')]
+  rows.forEach(row => {
+    const label = row.querySelector?.('span')?.textContent?.trim()
+    const value = row.querySelector?.('b')
+    if (label === 'Page name') setText(value, profile.name)
+    if (label === 'Username') setText(value, profile.username)
+    if (label === 'Page link') setText(value, profile.url)
+  })
+}
+
 function patchAnalyzeIdentity() {
   const profile = getFacebookProfile()
   if (!profile) return
@@ -93,18 +106,12 @@ function patchAnalyzeIdentity() {
   }
 
   // Keep English Profile signals in sync with the analyzed page.
-  const profileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'Profile signals')
-  const profilePanel = profileHeading?.closest('.panel')
-  if (profilePanel) {
-    const rows = [...profilePanel.children]
-    rows.forEach(row => {
-      const label = row.querySelector?.('span')?.textContent?.trim()
-      const value = row.querySelector?.('b')
-      if (label === 'Page name') setText(value, profile.name)
-      if (label === 'Username') setText(value, profile.username)
-      if (label === 'Page link') setText(value, profile.url)
-    })
-  }
+  const enProfileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'Profile signals')
+  syncProfileSignalRows(enProfileHeading?.closest('.panel'), profile)
+
+  // Keep Thai PROFILE SIGNALS / ข้อมูลโปรไฟล์ in sync with the analyzed page.
+  const thProfileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'ข้อมูลโปรไฟล์')
+  syncProfileSignalRows(thProfileHeading?.closest('.panel'), profile)
 }
 
 function patchCopy() {
