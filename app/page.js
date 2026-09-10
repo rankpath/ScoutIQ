@@ -9,11 +9,11 @@ const demoScores = [82, 79, 74]
 const comparisonFactors = [
   { name: 'Facebook SEO', weight: 15, source: 'Facebook Page', description: 'Page name, category, username/URL, About keywords and searchability.' },
   { name: 'Content Activity', weight: 15, source: 'Metricool', description: 'Posting frequency, Reels/video mix and consistency during the last 7 days.' },
-  { name: 'Engagement', weight: 20, source: 'Metricool', description: 'Interactions relative to content activity, including reactions, comments and shares.' },
-  { name: 'Creative Quality', weight: 15, source: 'ScoutIQ AI', description: 'Strength of hooks, visual clarity, proof, content format and message consistency.' },
-  { name: 'Offer Strength', weight: 15, source: 'ScoutIQ AI', description: 'Clarity of service, promotion, value proposition, urgency and CTA.' },
-  { name: 'Paid Ads Activity', weight: 10, source: 'Meta Ads Library', description: 'Visible active-ad activity, creative variety and offer/message patterns.' },
-  { name: 'Competitor Position', weight: 10, source: 'ScoutIQ', description: 'Overall strength relative to the other businesses in the same comparison set.' },
+  { name: 'Engagement', weight: 20, source: 'Metricool', description: 'Reactions, comments and shares relative to content activity.' },
+  { name: 'Creative Quality', weight: 15, source: 'ScoutIQ AI', description: 'Hooks, visual clarity, proof, format and message consistency.' },
+  { name: 'Offer Strength', weight: 15, source: 'ScoutIQ AI', description: 'Service clarity, promotion, value proposition, urgency and CTA.' },
+  { name: 'Paid Ads Activity', weight: 10, source: 'Meta Ads Library', description: 'Visible active ads, creative variety and offer/message patterns.' },
+  { name: 'Competitor Position', weight: 10, source: 'ScoutIQ', description: 'Overall strength relative to businesses in the same comparison set.' },
 ]
 
 const scoreMetrics = [
@@ -111,15 +111,26 @@ function Dashboard({ url, setUrl, runAnalysis, setActivePage, comparison }) {
       <p>Analyze Facebook pages, compare activity and turn social data into clear actions.</p>
       <div className="searchBox"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze</button></div>
     </section>
+
     <section className="featureGrid">
       <Feature icon="⌕" title="Analyze Any Page" text="Turn a Facebook URL into a quick score." onClick={runAnalysis} />
       <Feature icon="♙" title="Compare Competitors" text="Input three businesses and compare them." onClick={()=>setActivePage('Competitors')} />
       <Feature icon="▤" title="Track Ads" text="Open the Ads Library module status." onClick={()=>setActivePage('Ads Library')} />
-      <Feature icon="✦" title="Get Actionable Tips" text="Open the analysis view to see recommendations." onClick={runAnalysis} />
+      <Feature icon="✦" title="Get Actionable Tips" text="Open analysis to see recommendations." onClick={runAnalysis} />
     </section>
+
     <section className="twoCol">
-      <div className="panel"><div className="panelHead"><div><small>BENCHMARK</small><h2>Competitor comparison</h2></div><span className="pill">Last 7 days</span></div><ComparisonBars comparison={comparison}/><button className="secondary" type="button" style={{marginTop:18}} onClick={()=>setActivePage('Competitors')}>View comparison details</button></div>
-      <div className="panel"><div className="panelHead"><div><small>AI SIGNALS</small><h2>Opportunity radar</h2></div><span className="pill">AI</span></div><Insight type="up" title="Reels momentum" text="Video-first content is outperforming static posts."/><Insight type="up" title="Review content" text="Before/after and customer stories drive response."/><Insight type="down" title="Page SEO gap" text="Page naming and keyword coverage can improve."/></div>
+      <div className="panel">
+        <div className="panelHead"><div><small>BENCHMARK</small><h2>Competitor comparison</h2></div><span className="pill">Best score first</span></div>
+        <ComparisonBars comparison={comparison}/>
+        <button className="secondary" type="button" style={{marginTop:18}} onClick={()=>setActivePage('Competitors')}>View comparison details</button>
+      </div>
+      <div className="panel">
+        <div className="panelHead"><div><small>AI SIGNALS</small><h2>Opportunity radar</h2></div><span className="pill">AI</span></div>
+        <Insight type="up" title="Reels momentum" text="Video-first content is outperforming static posts."/>
+        <Insight type="up" title="Review content" text="Before/after and customer stories drive response."/>
+        <Insight type="down" title="Page SEO gap" text="Page naming and keyword coverage can improve."/>
+      </div>
     </section>
   </>
 }
@@ -130,19 +141,19 @@ function CompetitorsPage({ competitorInputs, updateCompetitor, compareThree, com
       <div className="panelHead"><div><small>COMPETITOR SETUP</small><h2>Input 3 businesses</h2></div><span className="pill">Manual input</span></div>
       <p className="muted"><b>Your business:</b> Youngdo Clinic · Enter three competitor business names or Facebook Page URLs.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14,marginTop:22}}>
-        {competitorInputs.map((value,index)=><label key={index} style={{display:'grid',gap:7}}><span style={{fontSize:12,fontWeight:750}}>Competitor {index+1}</span><input value={value} onChange={e=>updateCompetitor(index,e.target.value)} placeholder={`Business ${index+1} name or Facebook URL`} style={{border:'1px solid #e6e8f0',borderRadius:10,padding:'13px 12px',outline:'none'}}/></label>)}
+        {competitorInputs.map((value,index)=><label key={index} style={{display:'grid',gap:7}}><span style={{fontSize:12,fontWeight:750}}>Competitor {index+1}</span><input value={value} onChange={e=>updateCompetitor(index,e.target.value)} placeholder={`Business ${index+1} name or Facebook URL`} style={inputStyle}/></label>)}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginTop:18,flexWrap:'wrap'}}><button className="primary" type="button" onClick={compareThree}>Compare 3 Businesses</button><span className="muted" style={{fontSize:12}}>Names update now; live scores come after data integration.</span></div>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginTop:18,flexWrap:'wrap'}}><button className="primary" type="button" onClick={compareThree}>Compare 3 Businesses</button><span className="muted" style={{fontSize:12}}>Results are automatically ranked from highest to lowest score.</span></div>
     </section>
 
     <section className="panel" style={{marginTop:18}}>
-      <div className="panelHead"><div><small>BENCHMARK</small><h2>{hasCompared ? 'Comparison updated' : 'Competitor comparison'}</h2></div><span className="pill">ScoutIQ Score /100</span></div>
+      <div className="panelHead"><div><small>BENCHMARK</small><h2>{hasCompared ? 'Comparison updated' : 'Competitor comparison'}</h2></div><span className="pill">Best score first</span></div>
       <ComparisonBars comparison={comparison}/>
     </section>
 
     <section className="panel" style={{marginTop:18}}>
-      <div className="panelHead"><div><small>SCORING METHOD</small><h2>What ScoutIQ compares</h2></div><span className="pill">Total weight 100%</span></div>
-      <p className="muted" style={{maxWidth:850}}>Each business is scored across the same 7 factors. The planned live version uses the most recent 7-day social data where available, then ScoutIQ applies the weights below to produce the overall score.</p>
+      <div className="panelHead"><div><small>SCORING METHOD</small><h2>How ScoutIQ Calculates Your Score</h2></div><span className="pill">What to calculate</span></div>
+      <p className="muted" style={{maxWidth:850}}>Compare your business with three competitors across seven factors to reveal strengths, weaknesses, ranking gaps, and recommended actions for improvement.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:18}}>
         {comparisonFactors.map(factor => <article key={factor.name} style={{border:'1px solid #e6e8f0',borderRadius:14,padding:16,background:'#fafbff'}}>
           <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center'}}><b style={{fontSize:14}}>{factor.name}</b><span className="pill">{factor.weight}%</span></div>
@@ -150,19 +161,62 @@ function CompetitorsPage({ competitorInputs, updateCompetitor, compareThree, com
           <span style={{fontSize:11,fontWeight:750,color:'#6747f5'}}>Source: {factor.source}</span>
         </article>)}
       </div>
-      <div className="notice"><b>Prototype note:</b> the current competitor scores are demo values. When Metricool + Meta Ads Library are connected, the score will use real inputs instead of fixed demo scores.</div>
+      <div className="notice"><b>Prototype note:</b> current competitor scores are demo values. Live data will replace them after Metricool + Meta Ads Library integration.</div>
     </section>
   </>
 }
 
 function AnalyzePage({ url, setUrl, setActivePage, runAnalysis, analysisRuns }) {
+  const safeUrl = url && url.startsWith('http') ? url : 'https://www.facebook.com/'
+  const followerPoints = '0,76 45,70 90,62 135,66 180,48 225,40 270,31 315,24 360,12'
   return <>
-    <div className="searchBox topSearch"><input value={url} onChange={e=>setUrl(e.target.value)}/><button type="button" onClick={runAnalysis}>Analyze Again</button></div>
+    <div className="searchBox topSearch"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze Again</button></div>
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:10}}><span className="pill">{analysisRuns > 0 ? `Demo analysis run ${analysisRuns}` : 'Demo analysis'}</span></div>
-    <section className="identity panel"><div className="logoBubble">Y</div><div className="grow"><h2>Youngdo Clinic</h2><p>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p></div><button className="secondary" type="button" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></section>
+
+    <section className="panel" style={{display:'grid',gridTemplateColumns:'92px 1fr auto',gap:18,alignItems:'center'}}>
+      <div style={{width:82,height:82,borderRadius:18,background:'linear-gradient(135deg,#11192b,#6747f5)',color:'#fff',display:'grid',placeItems:'center',fontSize:32,fontWeight:900}}>Y</div>
+      <div><small>FACEBOOK PAGE</small><h2 style={{margin:'5px 0'}}>Youngdo Clinic</h2><p className="muted" style={{margin:0}}>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p><div style={{marginTop:9,fontSize:12,color:'#6d7485',wordBreak:'break-all'}}>{safeUrl}</div></div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}><a className="secondary" href={safeUrl} target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>Open Facebook ↗</a><button className="secondary" type="button" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></div>
+    </section>
+
+    <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12,marginTop:18}}>
+      <MetricCard label="Followers" value="52.4K" change="+3.6%" />
+      <MetricCard label="New followers · 7d" value="+1,820" change="+420 vs prior" />
+      <MetricCard label="Posts · 7d" value="11" change="7 Reels" />
+      <MetricCard label="Avg. engagement" value="3.8%" change="+0.7 pts" />
+    </section>
+
     <section className="twoCol">
+      <div className="panel">
+        <div className="panelHead"><div><small>FOLLOWER TREND</small><h2>Follower growth · 7 days</h2></div><span className="pill">+3.6%</span></div>
+        <svg viewBox="0 0 360 90" style={{width:'100%',height:150,marginTop:10,overflow:'visible'}} role="img" aria-label="Demo follower trend over seven days">
+          <line x1="0" y1="76" x2="360" y2="76" stroke="#e6e8f0" strokeWidth="1" />
+          <line x1="0" y1="44" x2="360" y2="44" stroke="#f0f1f6" strokeWidth="1" />
+          <polyline points={followerPoints} fill="none" stroke="#6747f5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          {[[0,76],[90,62],[180,48],[270,31],[360,12]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="4" fill="#fff" stroke="#6747f5" strokeWidth="3"/>)}
+        </svg>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#8a90a0'}}><span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Day 5</span><span>Day 6</span><span>Today</span></div>
+        <p className="muted" style={{fontSize:12,marginTop:14}}>Demo trend. Live version will use available follower history from connected social data.</p>
+      </div>
       <div className="panel scorePanel"><small>SCOUTIQ SCORE</small><div className="scoreWrap"><div className="scoreRing"><div><strong>76</strong><span>/100</span></div></div><div className="metricList">{scoreMetrics.map(([m,s])=><div key={m}><span>{m}</span><b>{s}</b></div>)}</div></div></div>
-      <div className="panel"><div className="panelHead"><div><small>AI ANALYSIS</small><h2>Quick insights</h2></div><span className="pill">AI</span></div><Insight type="up" title="Reels performing strongly" text="Video content is the clearest growth signal."/><Insight type="up" title="Review content generates engagement" text="Customer proof strengthens trust and response."/><Insight type="down" title="Facebook Page SEO can improve" text="Improve keyword coverage in naming and About."/></div>
+    </section>
+
+    <section className="twoCol">
+      <div className="panel">
+        <div className="panelHead"><div><small>AI ANALYSIS</small><h2>Quick insights</h2></div><span className="pill">AI</span></div>
+        <Insight type="up" title="Follower growth is positive" text="Follower trend is moving upward across the 7-day demo period."/>
+        <Insight type="up" title="Reels performing strongly" text="Video content is the clearest growth signal."/>
+        <Insight type="up" title="Review content generates engagement" text="Customer proof strengthens trust and response."/>
+        <Insight type="down" title="Facebook Page SEO can improve" text="Improve keyword coverage in naming and About."/>
+      </div>
+      <div className="panel">
+        <div className="panelHead"><div><small>PAGE DETAILS</small><h2>Profile signals</h2></div><span className="pill">Demo</span></div>
+        <Detail label="Page name" value="Youngdo Clinic" />
+        <Detail label="Username" value="@youngdoclinic" />
+        <Detail label="Category" value="Health / Beauty" />
+        <Detail label="Location" value="Bangkok, Thailand" />
+        <Detail label="Page link" value={safeUrl} />
+      </div>
     </section>
   </>
 }
@@ -181,9 +235,16 @@ function ContentPage({ insights, setInsights }) {
 const inputStyle = {border:'1px solid #e6e8f0',borderRadius:10,padding:'12px',font:'inherit'}
 
 function Placeholder({ title }) {
-  return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><span className="pill">Coming soon</span><p className="muted">Navigation works, but this module is not connected to live data yet. It will be enabled in a later development step.</p></section>
+  return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><span className="pill">Coming soon</span><p className="muted">Navigation works, but this module is not connected to live data yet.</p></section>
 }
 
 function Feature({icon,title,text,onClick}) { return <article className="featureCard" onClick={onClick} role={onClick?'button':undefined} tabIndex={onClick?0:undefined} onKeyDown={e=>{if(onClick&&(e.key==='Enter'||e.key===' '))onClick()}} style={{cursor:onClick?'pointer':'default'}}><div className="featureIcon">{icon}</div><h3>{title}</h3><p>{text}</p></article> }
-function ComparisonBars({comparison}) { return <div className="bars">{comparison.map(([name,score])=><div className="barRow" key={`${name}-${score}`}><span>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div> }
+
+function ComparisonBars({comparison}) {
+  const ranked = [...comparison].sort((a,b)=>Number(b[1])-Number(a[1]))
+  return <div className="bars">{ranked.map(([name,score],index)=><div className="barRow" key={`${name}-${score}`}><span><b style={{marginRight:7,color:index===0?'#6747f5':'#8a90a0'}}>#{index+1}</b>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div>
+}
+
+function MetricCard({label,value,change}) { return <div className="panel" style={{padding:18}}><small>{label.toUpperCase()}</small><strong style={{display:'block',fontSize:27,margin:'7px 0 2px'}}>{value}</strong><span style={{fontSize:12,color:'#16a36a',fontWeight:750}}>{change}</span></div> }
+function Detail({label,value}) { return <div style={{display:'grid',gridTemplateColumns:'110px 1fr',gap:12,padding:'11px 0',borderBottom:'1px solid #eef0f5',fontSize:12}}><span className="muted">{label}</span><b style={{wordBreak:'break-all'}}>{value}</b></div> }
 function Insight({type,title,text}) { return <div className="insight"><span className={type==='up'?'signal up':'signal down'}>{type==='up'?'↗':'↘'}</span><div><b>{title}</b><p>{text}</p></div></div> }
