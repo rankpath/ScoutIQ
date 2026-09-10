@@ -46,6 +46,7 @@ export default function Home() {
   const [competitors, setCompetitors] = useState(defaultCompetitors)
   const [hasCompared, setHasCompared] = useState(false)
   const [insights, setInsights] = useState(starterInsights)
+  const [analysisRuns, setAnalysisRuns] = useState(0)
 
   useEffect(() => {
     try {
@@ -64,9 +65,15 @@ export default function Home() {
   ], [competitors])
 
   const updateCompetitor = (index, value) => setCompetitorInputs(current => current.map((item, i) => i === index ? value : item))
+
   const compareThree = () => {
     setCompetitors(competitorInputs.map((item, index) => item.trim() || `Competitor ${index + 1}`))
     setHasCompared(true)
+  }
+
+  const runAnalysis = () => {
+    setAnalysisRuns(current => current + 1)
+    setActivePage('Analyze')
   }
 
   return (
@@ -87,8 +94,8 @@ export default function Home() {
           <div className="account"><div className="avatar">A</div><div><b>AdsCraft Digital</b><span>ScoutIQ Workspace</span></div></div>
         </header>
 
-        {activePage === 'Dashboard' && <Dashboard url={url} setUrl={setUrl} setActivePage={setActivePage} comparison={comparison} />}
-        {activePage === 'Analyze' && <AnalyzePage url={url} setUrl={setUrl} setActivePage={setActivePage} />}
+        {activePage === 'Dashboard' && <Dashboard url={url} setUrl={setUrl} runAnalysis={runAnalysis} setActivePage={setActivePage} comparison={comparison} />}
+        {activePage === 'Analyze' && <AnalyzePage url={url} setUrl={setUrl} setActivePage={setActivePage} runAnalysis={runAnalysis} analysisRuns={analysisRuns} />}
         {activePage === 'Competitors' && <CompetitorsPage competitorInputs={competitorInputs} updateCompetitor={updateCompetitor} compareThree={compareThree} comparison={comparison} hasCompared={hasCompared} />}
         {activePage === 'Content' && <ContentPage insights={insights} setInsights={setInsights} />}
         {['Ads Library','Reports','Settings'].includes(activePage) && <Placeholder title={activePage} />}
@@ -97,21 +104,21 @@ export default function Home() {
   )
 }
 
-function Dashboard({ url, setUrl, setActivePage, comparison }) {
+function Dashboard({ url, setUrl, runAnalysis, setActivePage, comparison }) {
   return <>
     <section className="hero panel">
       <h2>Know what competitors are doing before your next move.</h2>
       <p>Analyze Facebook pages, compare activity and turn social data into clear actions.</p>
-      <div className="searchBox"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button onClick={()=>setActivePage('Analyze')}>Analyze</button></div>
+      <div className="searchBox"><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="Paste Facebook Page URL"/><button type="button" onClick={runAnalysis}>Analyze</button></div>
     </section>
     <section className="featureGrid">
-      <Feature icon="⌕" title="Analyze Any Page" text="Turn a Facebook URL into a quick score." onClick={()=>setActivePage('Analyze')} />
+      <Feature icon="⌕" title="Analyze Any Page" text="Turn a Facebook URL into a quick score." onClick={runAnalysis} />
       <Feature icon="♙" title="Compare Competitors" text="Input three businesses and compare them." onClick={()=>setActivePage('Competitors')} />
-      <Feature icon="▤" title="Track Ads" text="Prepare competitor ad intelligence." onClick={()=>setActivePage('Ads Library')} />
-      <Feature icon="✦" title="Get Actionable Tips" text="See what to improve next." />
+      <Feature icon="▤" title="Track Ads" text="Open the Ads Library module status." onClick={()=>setActivePage('Ads Library')} />
+      <Feature icon="✦" title="Get Actionable Tips" text="Open the analysis view to see recommendations." onClick={runAnalysis} />
     </section>
     <section className="twoCol">
-      <div className="panel"><div className="panelHead"><div><small>BENCHMARK</small><h2>Competitor comparison</h2></div><span className="pill">Last 7 days</span></div><ComparisonBars comparison={comparison}/><button className="secondary" style={{marginTop:18}} onClick={()=>setActivePage('Competitors')}>View comparison details</button></div>
+      <div className="panel"><div className="panelHead"><div><small>BENCHMARK</small><h2>Competitor comparison</h2></div><span className="pill">Last 7 days</span></div><ComparisonBars comparison={comparison}/><button className="secondary" type="button" style={{marginTop:18}} onClick={()=>setActivePage('Competitors')}>View comparison details</button></div>
       <div className="panel"><div className="panelHead"><div><small>AI SIGNALS</small><h2>Opportunity radar</h2></div><span className="pill">AI</span></div><Insight type="up" title="Reels momentum" text="Video-first content is outperforming static posts."/><Insight type="up" title="Review content" text="Before/after and customer stories drive response."/><Insight type="down" title="Page SEO gap" text="Page naming and keyword coverage can improve."/></div>
     </section>
   </>
@@ -125,7 +132,7 @@ function CompetitorsPage({ competitorInputs, updateCompetitor, compareThree, com
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14,marginTop:22}}>
         {competitorInputs.map((value,index)=><label key={index} style={{display:'grid',gap:7}}><span style={{fontSize:12,fontWeight:750}}>Competitor {index+1}</span><input value={value} onChange={e=>updateCompetitor(index,e.target.value)} placeholder={`Business ${index+1} name or Facebook URL`} style={{border:'1px solid #e6e8f0',borderRadius:10,padding:'13px 12px',outline:'none'}}/></label>)}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginTop:18,flexWrap:'wrap'}}><button className="primary" onClick={compareThree}>Compare 3 Businesses</button><span className="muted" style={{fontSize:12}}>Names update now; live scores come after data integration.</span></div>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginTop:18,flexWrap:'wrap'}}><button className="primary" type="button" onClick={compareThree}>Compare 3 Businesses</button><span className="muted" style={{fontSize:12}}>Names update now; live scores come after data integration.</span></div>
     </section>
 
     <section className="panel" style={{marginTop:18}}>
@@ -148,10 +155,11 @@ function CompetitorsPage({ competitorInputs, updateCompetitor, compareThree, com
   </>
 }
 
-function AnalyzePage({ url, setUrl, setActivePage }) {
+function AnalyzePage({ url, setUrl, setActivePage, runAnalysis, analysisRuns }) {
   return <>
-    <div className="searchBox topSearch"><input value={url} onChange={e=>setUrl(e.target.value)}/><button>Analyze Again</button></div>
-    <section className="identity panel"><div className="logoBubble">Y</div><div className="grow"><h2>Youngdo Clinic</h2><p>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p></div><button className="secondary" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></section>
+    <div className="searchBox topSearch"><input value={url} onChange={e=>setUrl(e.target.value)}/><button type="button" onClick={runAnalysis}>Analyze Again</button></div>
+    <div style={{display:'flex',justifyContent:'flex-end',marginBottom:10}}><span className="pill">{analysisRuns > 0 ? `Demo analysis run ${analysisRuns}` : 'Demo analysis'}</span></div>
+    <section className="identity panel"><div className="logoBubble">Y</div><div className="grow"><h2>Youngdo Clinic</h2><p>@youngdoclinic · Health / Beauty · Bangkok, Thailand</p></div><button className="secondary" type="button" onClick={()=>setActivePage('Competitors')}>Compare competitors</button></section>
     <section className="twoCol">
       <div className="panel scorePanel"><small>SCOUTIQ SCORE</small><div className="scoreWrap"><div className="scoreRing"><div><strong>76</strong><span>/100</span></div></div><div className="metricList">{scoreMetrics.map(([m,s])=><div key={m}><span>{m}</span><b>{s}</b></div>)}</div></div></div>
       <div className="panel"><div className="panelHead"><div><small>AI ANALYSIS</small><h2>Quick insights</h2></div><span className="pill">AI</span></div><Insight type="up" title="Reels performing strongly" text="Video content is the clearest growth signal."/><Insight type="up" title="Review content generates engagement" text="Customer proof strengthens trust and response."/><Insight type="down" title="Facebook Page SEO can improve" text="Improve keyword coverage in naming and About."/></div>
@@ -161,13 +169,21 @@ function AnalyzePage({ url, setUrl, setActivePage }) {
 
 function ContentPage({ insights, setInsights }) {
   const [form,setForm] = useState({business:'Youngdo Clinic',topic:'',insight:''})
-  const save = e => { e.preventDefault(); if(!form.business.trim()||!form.topic.trim()||!form.insight.trim()) return; setInsights(current=>[{id:String(Date.now()),type:'Observation',score:80,action:'Review and test this finding.',...form},...current]); setForm({...form,topic:'',insight:''}) }
-  return <section className="panel"><div className="panelHead"><div><small>CONTENT INTELLIGENCE</small><h2>Content Insight Vault</h2></div><span className="pill">Saved in browser</span></div><form onSubmit={save} style={{display:'grid',gap:10,margin:'18px 0'}}><input style={inputStyle} value={form.business} onChange={e=>setForm({...form,business:e.target.value})} placeholder="Business"/><input style={inputStyle} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Content topic / hook"/><textarea style={{...inputStyle,minHeight:80}} value={form.insight} onChange={e=>setForm({...form,insight:e.target.value})} placeholder="Insight"/><button className="primary" style={{width:'fit-content'}}>+ Save Insight</button></form>{insights.map(item=><div key={item.id} style={{borderTop:'1px solid #e6e8f0',padding:'14px 0'}}><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}</section>
+  const save = e => {
+    e.preventDefault()
+    if(!form.business.trim()||!form.topic.trim()||!form.insight.trim()) return
+    setInsights(current=>[{id:String(Date.now()),type:'Observation',score:80,action:'Review and test this finding.',...form},...current])
+    setForm({...form,topic:'',insight:''})
+  }
+  return <section className="panel"><div className="panelHead"><div><small>CONTENT INTELLIGENCE</small><h2>Content Insight Vault</h2></div><span className="pill">Saved in browser</span></div><form onSubmit={save} style={{display:'grid',gap:10,margin:'18px 0'}}><input style={inputStyle} value={form.business} onChange={e=>setForm({...form,business:e.target.value})} placeholder="Business"/><input style={inputStyle} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Content topic / hook"/><textarea style={{...inputStyle,minHeight:80}} value={form.insight} onChange={e=>setForm({...form,insight:e.target.value})} placeholder="Insight"/><button className="primary" type="submit" style={{width:'fit-content'}}>+ Save Insight</button></form>{insights.map(item=><div key={item.id} style={{borderTop:'1px solid #e6e8f0',padding:'14px 0'}}><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}</section>
 }
 
 const inputStyle = {border:'1px solid #e6e8f0',borderRadius:10,padding:'12px',font:'inherit'}
 
-function Placeholder({ title }) { return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><p className="muted">This module is ready for the next development step.</p></section> }
-function Feature({icon,title,text,onClick}) { return <article className="featureCard" onClick={onClick} style={{cursor:onClick?'pointer':'default'}}><div className="featureIcon">{icon}</div><h3>{title}</h3><p>{text}</p></article> }
+function Placeholder({ title }) {
+  return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><span className="pill">Coming soon</span><p className="muted">Navigation works, but this module is not connected to live data yet. It will be enabled in a later development step.</p></section>
+}
+
+function Feature({icon,title,text,onClick}) { return <article className="featureCard" onClick={onClick} role={onClick?'button':undefined} tabIndex={onClick?0:undefined} onKeyDown={e=>{if(onClick&&(e.key==='Enter'||e.key===' '))onClick()}} style={{cursor:onClick?'pointer':'default'}}><div className="featureIcon">{icon}</div><h3>{title}</h3><p>{text}</p></article> }
 function ComparisonBars({comparison}) { return <div className="bars">{comparison.map(([name,score])=><div className="barRow" key={`${name}-${score}`}><span>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div> }
 function Insight({type,title,text}) { return <div className="insight"><span className={type==='up'?'signal up':'signal down'}>{type==='up'?'↗':'↘'}</span><div><b>{title}</b><p>{text}</p></div></div> }
