@@ -9,6 +9,7 @@ const replacements = new Map([
   ['AdsCraft Digital', 'ScoutIQ'],
   ['ScoutIQ Workspace', 'Social Media Analytics Platform'],
   ['Good morning, AdsCraft!', 'Good morning!'],
+  ['ScoutIQ Beta', 'ScoutIQ v.1'],
 ])
 
 function patchCopy() {
@@ -31,6 +32,42 @@ function patchCopy() {
     builtBy.style.opacity = '0.78'
     builtBy.style.marginTop = '3px'
     accountMeta.appendChild(builtBy)
+  }
+
+  // Analyze layout: ScoutIQ Score on the left, Follower Trend on the right.
+  const allPanels = [...document.querySelectorAll('.panel')]
+  const scorePanel = allPanels.find(panel => [...panel.querySelectorAll('small')].some(el => el.textContent?.trim() === 'SCOUTIQ SCORE'))
+  const followerPanel = allPanels.find(panel => [...panel.querySelectorAll('small')].some(el => el.textContent?.trim() === 'FOLLOWER TREND'))
+  if (scorePanel && followerPanel && scorePanel.parentElement === followerPanel.parentElement) {
+    const row = scorePanel.parentElement
+    if (row.firstElementChild !== scorePanel) row.insertBefore(scorePanel, followerPanel)
+  }
+
+  // Add address to Profile signals.
+  const profileHeading = [...document.querySelectorAll('h2')].find(el => el.textContent?.trim() === 'Profile signals')
+  const profilePanel = profileHeading?.closest('.panel')
+  if (profilePanel && !profilePanel.querySelector('[data-scoutiq-address]')) {
+    const pageLinkRow = [...profilePanel.children].find(child => child.querySelector?.('span')?.textContent?.trim() === 'Page link')
+    const addressRow = document.createElement('div')
+    addressRow.dataset.scoutiqAddress = 'true'
+    addressRow.style.display = 'grid'
+    addressRow.style.gridTemplateColumns = '110px 1fr'
+    addressRow.style.gap = '12px'
+    addressRow.style.padding = '11px 0'
+    addressRow.style.borderBottom = '1px solid #eef0f5'
+    addressRow.style.fontSize = '12px'
+
+    const label = document.createElement('span')
+    label.className = 'muted'
+    label.textContent = 'Address'
+
+    const value = document.createElement('b')
+    value.textContent = 'Bangkok, Thailand'
+    value.style.wordBreak = 'break-word'
+
+    addressRow.append(label, value)
+    if (pageLinkRow) profilePanel.insertBefore(addressRow, pageLinkRow)
+    else profilePanel.appendChild(addressRow)
   }
 }
 
