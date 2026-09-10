@@ -1,4 +1,5 @@
 import './globals.css'
+import CopyPatch from './CopyPatch'
 
 export const metadata = {
   title: 'ScoutIQ — Social Intelligence',
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <CopyPatch />
+      </body>
     </html>
   )
 }
