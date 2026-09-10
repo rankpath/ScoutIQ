@@ -65,12 +65,10 @@ export default function Home() {
   ], [competitors])
 
   const updateCompetitor = (index, value) => setCompetitorInputs(current => current.map((item, i) => i === index ? value : item))
-
   const compareThree = () => {
     setCompetitors(competitorInputs.map((item, index) => item.trim() || `Competitor ${index + 1}`))
     setHasCompared(true)
   }
-
   const runAnalysis = () => {
     setAnalysisRuns(current => current + 1)
     setActivePage('Analyze')
@@ -80,11 +78,7 @@ export default function Home() {
     <div className="appShell">
       <aside className="sidebar">
         <div className="brand"><span className="brandMark">◈</span><span>ScoutIQ</span></div>
-        <nav>
-          {navItems.map(item => (
-            <button key={item} type="button" className={activePage === item ? 'active' : ''} onClick={() => setActivePage(item)}>{item}</button>
-          ))}
-        </nav>
+        <nav>{navItems.map(item => <button key={item} type="button" className={activePage === item ? 'active' : ''} onClick={() => setActivePage(item)}>{item}</button>)}</nav>
         <div className="sideCard"><strong>ScoutIQ Beta</strong><p>Competitor intelligence workspace.</p><span>Prototype mode</span></div>
       </aside>
 
@@ -229,7 +223,18 @@ function ContentPage({ insights, setInsights }) {
     setInsights(current=>[{id:String(Date.now()),type:'Observation',score:80,action:'Review and test this finding.',...form},...current])
     setForm({...form,topic:'',insight:''})
   }
-  return <section className="panel"><div className="panelHead"><div><small>CONTENT INTELLIGENCE</small><h2>Content Insight Vault</h2></div><span className="pill">Saved in browser</span></div><form onSubmit={save} style={{display:'grid',gap:10,margin:'18px 0'}}><input style={inputStyle} value={form.business} onChange={e=>setForm({...form,business:e.target.value})} placeholder="Business"/><input style={inputStyle} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Content topic / hook"/><textarea style={{...inputStyle,minHeight:80}} value={form.insight} onChange={e=>setForm({...form,insight:e.target.value})} placeholder="Insight"/><button className="primary" type="submit" style={{width:'fit-content'}}>+ Save Insight</button></form>{insights.map(item=><div key={item.id} style={{borderTop:'1px solid #e6e8f0',padding:'14px 0'}}><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}</section>
+
+  return <section className="panel">
+    <div className="panelHead"><div><small>CONTENT INTELLIGENCE</small><h2>Content Insight Vault</h2></div><span className="pill">1 Brand + 3 Competitors · 7 days</span></div>
+    <p className="muted" style={{maxWidth:820,marginTop:10}}>ScoutIQ analyzes <b>7 days of content</b> from your brand and 3 competitors, comparing engagement, formats, offers, and winning patterns.</p>
+    <form onSubmit={save} style={{display:'grid',gap:10,margin:'18px 0'}}>
+      <input style={inputStyle} value={form.business} onChange={e=>setForm({...form,business:e.target.value})} placeholder="Business"/>
+      <input style={inputStyle} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Content topic / hook"/>
+      <textarea style={{...inputStyle,minHeight:80}} value={form.insight} onChange={e=>setForm({...form,insight:e.target.value})} placeholder="Insight"/>
+      <button className="primary" type="submit" style={{width:'fit-content'}}>+ Save Insight</button>
+    </form>
+    {insights.map(item=><div key={item.id} style={{borderTop:'1px solid #e6e8f0',padding:'14px 0'}}><b>{item.business} · {item.topic}</b><p className="muted" style={{marginBottom:0}}>{item.insight}</p></div>)}
+  </section>
 }
 
 const inputStyle = {border:'1px solid #e6e8f0',borderRadius:10,padding:'12px',font:'inherit'}
@@ -238,13 +243,21 @@ function Placeholder({ title }) {
   return <section className="panel"><small>SCOUTIQ MODULE</small><h2>{title}</h2><span className="pill">Coming soon</span><p className="muted">Navigation works, but this module is not connected to live data yet.</p></section>
 }
 
-function Feature({icon,title,text,onClick}) { return <article className="featureCard" onClick={onClick} role={onClick?'button':undefined} tabIndex={onClick?0:undefined} onKeyDown={e=>{if(onClick&&(e.key==='Enter'||e.key===' '))onClick()}} style={{cursor:onClick?'pointer':'default'}}><div className="featureIcon">{icon}</div><h3>{title}</h3><p>{text}</p></article> }
+function Feature({icon,title,text,onClick}) {
+  return <article className="featureCard" onClick={onClick} role={onClick?'button':undefined} tabIndex={onClick?0:undefined} onKeyDown={e=>{if(onClick&&(e.key==='Enter'||e.key===' '))onClick()}} style={{cursor:onClick?'pointer':'default'}}><div className="featureIcon">{icon}</div><h3>{title}</h3><p>{text}</p></article>
+}
 
 function ComparisonBars({comparison}) {
   const ranked = [...comparison].sort((a,b)=>Number(b[1])-Number(a[1]))
   return <div className="bars">{ranked.map(([name,score],index)=><div className="barRow" key={`${name}-${score}`}><span><b style={{marginRight:7,color:index===0?'#6747f5':'#8a90a0'}}>#{index+1}</b>{name}</span><div className="track"><i style={{width:`${score}%`}}/></div><b>{score}</b></div>)}</div>
 }
 
-function MetricCard({label,value,change}) { return <div className="panel" style={{padding:18}}><small>{label.toUpperCase()}</small><strong style={{display:'block',fontSize:27,margin:'7px 0 2px'}}>{value}</strong><span style={{fontSize:12,color:'#16a36a',fontWeight:750}}>{change}</span></div> }
-function Detail({label,value}) { return <div style={{display:'grid',gridTemplateColumns:'110px 1fr',gap:12,padding:'11px 0',borderBottom:'1px solid #eef0f5',fontSize:12}}><span className="muted">{label}</span><b style={{wordBreak:'break-all'}}>{value}</b></div> }
-function Insight({type,title,text}) { return <div className="insight"><span className={type==='up'?'signal up':'signal down'}>{type==='up'?'↗':'↘'}</span><div><b>{title}</b><p>{text}</p></div></div> }
+function MetricCard({label,value,change}) {
+  return <div className="panel" style={{padding:18}}><small>{label.toUpperCase()}</small><strong style={{display:'block',fontSize:27,margin:'7px 0 2px'}}>{value}</strong><span style={{fontSize:12,color:'#16a36a',fontWeight:750}}>{change}</span></div>
+}
+function Detail({label,value}) {
+  return <div style={{display:'grid',gridTemplateColumns:'110px 1fr',gap:12,padding:'11px 0',borderBottom:'1px solid #eef0f5',fontSize:12}}><span className="muted">{label}</span><b style={{wordBreak:'break-all'}}>{value}</b></div>
+}
+function Insight({type,title,text}) {
+  return <div className="insight"><span className={type==='up'?'signal up':'signal down'}>{type==='up'?'↗':'↘'}</span><div><b>{title}</b><p>{text}</p></div></div>
+}
