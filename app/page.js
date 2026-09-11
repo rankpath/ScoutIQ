@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 const navItems = ['Dashboard', 'Analyze', 'Competitors', 'Content', 'Ads Library', 'Reports', 'Settings']
 const navIcons = { Dashboard:'⌂', Analyze:'◉', Competitors:'♙', Content:'▤', 'Ads Library':'✦', Reports:'◔', Settings:'⚙' }
-const defaultCompetitors = ['inZ Hospital', 'Lovely Eye & Skin', 'Beproud Clinic']
+const defaultCompetitors = ['', '', '']
 const demoScores = [82, 79, 74]
 
 const comparisonFactors = [
@@ -57,7 +57,7 @@ export default function Home() {
   const [activePage, setActivePage] = useState('Dashboard')
   const [url, setUrl] = useState('https://www.facebook.com/share/1DdhEhqgRU/')
   const [competitorInputs, setCompetitorInputs] = useState(defaultCompetitors)
-  const [competitors, setCompetitors] = useState(defaultCompetitors)
+  const [competitors, setCompetitors] = useState([])
   const [hasCompared, setHasCompared] = useState(false)
   const [insights, setInsights] = useState(starterInsights)
   const [analysisRuns, setAnalysisRuns] = useState(0)
@@ -73,15 +73,20 @@ export default function Home() {
     try { localStorage.setItem('scoutiq-content-insights', JSON.stringify(insights)) } catch {}
   }, [insights])
 
-  const comparison = useMemo(() => [
-    ['Youngdo Clinic', 76],
-    ...competitors.map((name, index) => [displayBusinessName(name, `Competitor ${index + 1}`), demoScores[index]]),
-  ], [competitors])
+  const comparison = useMemo(() => {
+    const entered = competitors.filter(name => name && name.trim())
+    if (!hasCompared || entered.length === 0) return []
+    return [
+      ['Youngdo Clinic', 76],
+      ...entered.map((name, index) => [displayBusinessName(name, ''), demoScores[index] ?? 70]),
+    ]
+  }, [competitors, hasCompared])
 
   const updateCompetitor = (index, value) => setCompetitorInputs(current => current.map((item, i) => i === index ? value : item))
   const compareThree = () => {
-    setCompetitors(competitorInputs.map((item, index) => item.trim() || `Competitor ${index + 1}`))
-    setHasCompared(true)
+    const entered = competitorInputs.map(item => item.trim()).filter(Boolean)
+    setCompetitors(entered)
+    setHasCompared(entered.length > 0)
   }
   const runAnalysis = () => {
     setAnalysisRuns(current => current + 1)
