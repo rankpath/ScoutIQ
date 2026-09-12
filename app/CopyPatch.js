@@ -199,6 +199,23 @@ function patchFollowerTrendDemoState() {
   }
 }
 
+function patchInstagramNavigation() {
+  if (window.location.pathname.startsWith('/th')) return
+  const nav = document.querySelector('.sidebar nav')
+  if (!nav || nav.querySelector('[data-instagram-nav]')) return
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.dataset.instagramNav = 'true'
+  button.innerHTML = '<span class="navIcon">◎</span><span class="navLabel">Instagram Analytics</span>'
+  button.addEventListener('click', () => { window.location.href = '/instagram' })
+
+  const buttons = [...nav.querySelectorAll('button')]
+  const competitorButton = buttons.find(item => item.textContent?.trim().includes('Competitors'))
+  if (competitorButton?.nextSibling) nav.insertBefore(button, competitorButton.nextSibling)
+  else nav.appendChild(button)
+}
+
 function patchCopy() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   let node
@@ -257,6 +274,7 @@ function patchCopy() {
     else profilePanel.appendChild(addressRow)
   }
 
+  patchInstagramNavigation()
   patchAnalyzeIdentity()
   patchCompetitorSetup()
   patchFollowerTrendDemoState()
