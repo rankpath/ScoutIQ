@@ -5,14 +5,16 @@ import { useEffect } from 'react'
 export default function AdsLibraryNavBridge() {
   useEffect(() => {
     const handler = event => {
-      const target = event.target?.closest?.('button, [role="button"], a')
+      if (window.location.pathname.startsWith('/ads-library')) return
+      const target = event.target?.closest?.('button, [role="button"], a, .featureCard')
       if (!target) return
       const label = target.textContent?.replace(/\s+/g, ' ').trim() || ''
-      if (label === 'Ads Library' || label.includes('Track Ads')) {
-        event.preventDefault()
-        event.stopPropagation()
-        window.location.assign('/ads-library')
-      }
+      const isAdsLibrary = label === 'Ads Library' || label.includes('Track Ads') || label.includes('คลังโฆษณา')
+      if (!isAdsLibrary) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      window.location.assign('/ads-library')
     }
 
     document.addEventListener('click', handler, true)
