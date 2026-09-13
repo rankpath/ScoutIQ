@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const COMPARE_FACTORS = [
   { key:'hook', name:'Hook', weight:20, description:'Opening line / first-message strength.' },
@@ -17,6 +17,7 @@ const videoWords = ['video', 'reel', 'reels', 'วีดีโอ', 'วิด�
 const carouselWords = ['carousel', 'album', 'หลายภาพ', 'สไลด์']
 const urgencyWords = ['today', 'now', 'limited', 'last chance', 'ends', 'only', 'วันนี้', 'ด่วน', 'จำนวนจำกัด', 'หมดเขต', 'เท่านั้น']
 const STORAGE_KEY = 'scoutiq-ads-competitor-v12'
+const MAX_ADS_PER_BRAND = 60
 
 function includesAny(text, words) {
   const lower = String(text || '').toLowerCase()
@@ -83,6 +84,7 @@ function extractMetaAds(raw) {
       return { id: libraryId || `captured-${index + 1}`, libraryId, text:block, status, platforms }
     })
     .filter(Boolean)
+    .slice(0, MAX_ADS_PER_BRAND)
 }
 
 function analyzeAds(raw) {
@@ -186,6 +188,7 @@ export default function AdsLibraryPage() {
   const [captureStatus, setCaptureStatus] = useState('Ready — add your brand and 3 competitors.')
   const [bookmarklet, setBookmarklet] = useState('')
   const [hydrated, setHydrated] = useState(false)
+  const bookmarkRef = useRef(null)
 
   useEffect(() => {
     try {
@@ -266,6 +269,19 @@ export default function AdsLibraryPage() {
     return () => window.removeEventListener('message', receiveCapture)
   }, [brands, selectedIndex])
 
+  useEffect(() => {
+    if (bookmarkRef.current && bookmarklet) bookmarkRef.current.setAttribute('href', bookmarklet)
+  }, [bookmarklet])
+
+  const copyBookmarklet = async () => {
+    try {
+      await navigator.clipboard.writeText(bookmarklet)
+      setCaptureStatus('Bookmarklet code copied. Create a browser bookmark and paste it into the bookmark URL field.')
+    } catch {
+      setCaptureStatus('Could not copy automatically. Drag the ScoutIQ Capture button to the bookmarks bar instead.')
+    }
+  }
+
   const importClipboard = async index => {
     setSelectedIndex(index)
     try {
@@ -344,9 +360,9 @@ export default function AdsLibraryPage() {
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:16}}>
-          <div className="factorCard"><b>Desktop one-click capture</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Drag this once to your bookmarks bar. Open each brand through its Ads Library button, scroll until the ads load, then click the bookmark. ScoutIQ reads the search brand from the Ads Library URL and assigns the capture automatically.</p>{bookmarklet && <a href={bookmarklet} className="secondary" style={{display:'inline-block',textDecoration:'none'}}>ScoutIQ Capture v1.2 ✦</a>}</div>
+          <div className="factorCard"><b>Desktop one-click capture</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Drag this once to your bookmarks bar. Open each brand through its Ads Library button, scroll until the ads load, then click the bookmark. ScoutIQ reads the search brand from the Ads Library URL and assigns the capture automatically.</p>{bookmarklet && <><a ref={bookmarkRef} href="#" className="secondary" style={{display:'inline-block',textDecoration:'none'}}>ScoutIQ Capture v1.2 ✦</a><button className="secondary" type="button" onClick={copyBookmarklet} style={{marginLeft:8}}>Copy code</button></>}</div>
           <div className="factorCard"><b>Capture status</b><p style={{fontSize:13,fontWeight:750,margin:'10px 0 4px'}}>{captureStatus}</p><span className="sourceText">Selected target: {brands[selectedIndex]?.name || brands[selectedIndex]?.role}</span></div>
-          <div className="factorCard"><b>Fair comparison rule</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Capture all brands with the same country, active-ad filter and similar scroll depth. A larger capture set can otherwise make a brand look artificially stronger.</p></div>
+          <div className="factorCard"><b>Fair comparison rule</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Capture all brands with the same country, active-ad filter and similar scroll depth. Up to {MAX_ADS_PER_BRAND} visible ads per brand are kept to protect browser storage and keep comparisons stable.</p></div>
         </div>
 
         <div style={{marginTop:14}}><button className="secondary" type="button" onClick={clearAll}>Reset all 4 brands</button></div>
@@ -364,7 +380,7 @@ export default function AdsLibraryPage() {
           <div className="panelHead"><div><small>FACTOR COMPARISON</small><h2>Where each brand wins</h2></div><span className="pill">Equal 20% weights</span></div>
           <div style={{overflowX:'auto',marginTop:14}}>
             <table style={{width:'100%',borderCollapse:'collapse',minWidth:720,fontSize:12}}>
-              <thead><tr><th style={thStyle}>Factor</th>{brands.map((brand,index)=><th key={brand.role} style={thStyle}>{brand.name || brand.role}</th>)}</tr></thead>
+              <thead><tr><th style={thStyle}>Factor</th>{brands.map(brand=><th key={brand.role} style={thStyle}>{brand.name || brand.role}</th>)}</tr></thead>
               <tbody>{COMPARE_FACTORS.map(factor => {
                 const available = results.map(result => result?.scores[factor.key]).filter(value => Number.isFinite(value))
                 const best = available.length ? Math.max(...available) : null
