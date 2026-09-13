@@ -1,5 +1,6 @@
 import './globals.css'
 import CopyPatch from './CopyPatch'
+import AdsLibraryNavBridge from './AdsLibraryNavBridge'
 
 export const metadata = {
   title: 'ScoutIQ — Social Intelligence',
@@ -37,6 +38,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: insightSeedScript }} />
         {children}
         <CopyPatch />
+        <AdsLibraryNavBridge />
       </body>
     </html>
   )
