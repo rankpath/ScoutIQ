@@ -2,20 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-const FACTORS = [
-  { key:'volume', name:'Ad Activity', weight:20 },
-  { key:'creative', name:'Creative Variety', weight:20 },
-  { key:'hook', name:'Hook Strength', weight:20 },
-  { key:'offer', name:'Offer & CTA', weight:25 },
-  { key:'proof', name:'Trust & Proof', weight:15 },
+const COMPARE_FACTORS = [
+  { key:'hook', name:'Hook', weight:20, description:'Opening line / first-message strength.' },
+  { key:'offer', name:'Offer', weight:20, description:'Benefit, promotion and urgency clarity.' },
+  { key:'cta', name:'CTA', weight:20, description:'Clarity of the next action: book, message, call or learn more.' },
+  { key:'creative', name:'Creative', weight:20, description:'Variety across video/Reels, carousel and image formats.' },
+  { key:'proof', name:'Proof', weight:20, description:'Reviews, cases, results, before/after and expert credibility.' },
 ]
 
-const offerWords = ['%', 'discount', 'sale', 'promo', 'promotion', 'special', 'free', 'เริ่ม', 'ลด', 'โปร', 'โปรโมชั่น', 'ฟรี', 'ราคา']
-const ctaWords = ['book', 'booking', 'message', 'dm', 'contact', 'learn more', 'shop now', 'call', 'inbox', 'จอง', 'ทัก', 'แชท', 'ติดต่อ', 'ปรึกษา']
-const proofWords = ['review', 'testimonial', 'before', 'after', 'doctor', 'expert', 'case', 'result', 'รีวิว', 'ก่อน', 'หลัง', 'แพทย์', 'หมอ', 'เคส', 'ผลลัพธ์']
+const offerWords = ['%', 'discount', 'sale', 'promo', 'promotion', 'special', 'free', 'deal', 'package', 'เริ่ม', 'ลด', 'โปร', 'โปรโมชั่น', 'ฟรี', 'ราคา', 'แพ็กเกจ']
+const ctaWords = ['book', 'booking', 'message', 'dm', 'contact', 'learn more', 'shop now', 'call', 'inbox', 'appointment', 'จอง', 'ทัก', 'แชท', 'ติดต่อ', 'ปรึกษา', 'นัดหมาย']
+const proofWords = ['review', 'testimonial', 'before', 'after', 'doctor', 'expert', 'case', 'result', 'patient', 'รีวิว', 'ก่อน', 'หลัง', 'แพทย์', 'หมอ', 'เคส', 'ผลลัพธ์', 'คนไข้']
 const videoWords = ['video', 'reel', 'reels', 'วีดีโอ', 'วิดีโอ']
 const carouselWords = ['carousel', 'album', 'หลายภาพ', 'สไลด์']
-const urgencyWords = ['today', 'now', 'limited', 'last chance', 'ends', 'วันนี้', 'ด่วน', 'จำนวนจำกัด', 'หมดเขต']
+const urgencyWords = ['today', 'now', 'limited', 'last chance', 'ends', 'only', 'วันนี้', 'ด่วน', 'จำนวนจำกัด', 'หมดเขต', 'เท่านั้น']
+const STORAGE_KEY = 'scoutiq-ads-competitor-v12'
 
 function includesAny(text, words) {
   const lower = String(text || '').toLowerCase()
@@ -24,6 +25,10 @@ function includesAny(text, words) {
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function normalizeName(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
 function cleanBlock(text) {
@@ -56,6 +61,7 @@ function extractMetaAds(raw) {
       .split(/\n\s*---+\s*\n|\n\s*\n\s*\n/g)
       .map(cleanBlock)
       .filter(item => item.length >= 35)
+      .filter(item => /active|sponsored|facebook|instagram|video|reel|carousel|book|message|จอง|ทัก|โฆษณา/i.test(item))
   }
 
   const seen = new Set()
@@ -63,7 +69,7 @@ function extractMetaAds(raw) {
     .map((block, index) => {
       const idMatch = block.match(/(?:Library ID|Ad Library ID|รหัสคลังโฆษณา|รหัสไลบรารี)\s*:?\s*(\d+)/i)
       const libraryId = idMatch?.[1] || ''
-      const key = libraryId || block.slice(0, 180).toLowerCase()
+      const key = libraryId || block.slice(0, 220).toLowerCase()
       if (seen.has(key)) return null
       seen.add(key)
 
@@ -79,16 +85,11 @@ function extractMetaAds(raw) {
     .filter(Boolean)
 }
 
-function parseAds(raw) {
-  return extractMetaAds(raw).map(item => item.text)
-}
-
-function analyzeAds(raw, activeCount) {
+function analyzeAds(raw) {
   const records = extractMetaAds(raw)
   const ads = records.map(item => item.text)
-  if (!ads.length && !activeCount) return null
+  if (!ads.length) return null
 
-  const count = Number(activeCount || ads.length || 0)
   const joined = ads.join('\n').toLowerCase()
   const video = ads.filter(ad => includesAny(ad, videoWords)).length
   const carousel = ads.filter(ad => includesAny(ad, carouselWords)).length
@@ -97,18 +98,22 @@ function analyzeAds(raw, activeCount) {
   const ctaHits = ads.filter(ad => includesAny(ad, ctaWords)).length
   const proofHits = ads.filter(ad => includesAny(ad, proofWords)).length
   const urgencyHits = ads.filter(ad => includesAny(ad, urgencyWords)).length
-  const shortOpenings = ads.filter(ad => (ad.split(/\n|[.!?]/)[0] || '').trim().length > 0 && (ad.split(/\n|[.!?]/)[0] || '').trim().length <= 85).length
+  const shortOpenings = ads.filter(ad => {
+    const opening = (ad.split(/\n|[.!?]/)[0] || '').trim()
+    return opening.length > 0 && opening.length <= 85
+  }).length
   const formats = [video > 0, carousel > 0, image > 0].filter(Boolean).length
+  const ratio = value => ads.length ? value / ads.length : 0
 
   const scores = {
-    volume: clamp(count >= 10 ? 95 : count >= 6 ? 82 : count >= 3 ? 68 : count >= 1 ? 50 : 20),
-    creative: clamp(40 + formats * 18 + Math.min(12, video * 3)),
-    hook: clamp(45 + (ads.length ? (shortOpenings / ads.length) * 45 : 0) + (urgencyHits ? 8 : 0)),
-    offer: clamp(35 + (ads.length ? (offerHits / ads.length) * 30 : 0) + (ads.length ? (ctaHits / ads.length) * 35 : 0)),
-    proof: clamp(35 + (ads.length ? (proofHits / ads.length) * 60 : 0)),
+    hook: clamp(42 + ratio(shortOpenings) * 48 + ratio(urgencyHits) * 10),
+    offer: clamp(34 + ratio(offerHits) * 54 + ratio(urgencyHits) * 12),
+    cta: clamp(30 + ratio(ctaHits) * 68),
+    creative: clamp(34 + formats * 18 + Math.min(12, video * 3)),
+    proof: clamp(34 + ratio(proofHits) * 64),
   }
 
-  const overall = Math.round(FACTORS.reduce((sum, factor) => sum + scores[factor.key] * factor.weight / 100, 0))
+  const overall = Math.round(COMPARE_FACTORS.reduce((sum, factor) => sum + scores[factor.key] * factor.weight / 100, 0))
 
   const themes = []
   if (offerHits) themes.push('Promotion / Price')
@@ -118,15 +123,39 @@ function analyzeAds(raw, activeCount) {
   if (video) themes.push('Video / Reels')
   if (carousel) themes.push('Carousel')
 
-  const actions = []
-  if (scores.hook < 70) actions.push('Strengthen the first line or first 2 seconds with a clearer hook.')
-  if (scores.offer < 70) actions.push('Make the benefit, offer and CTA more explicit in each ad.')
-  if (scores.proof < 70) actions.push('Add more proof: reviews, cases, results, expert credibility or before/after evidence.')
-  if (scores.creative < 70) actions.push('Increase creative variety with video/Reels, carousel and static variations.')
-  if (count < 3) actions.push('Capture more active creative variations before drawing strong conclusions.')
-  if (!actions.length) actions.push('Keep the winning message and test new hooks, offers and creative variants around it.')
+  return {
+    records,
+    ads,
+    count: ads.length,
+    video,
+    carousel,
+    image,
+    offerHits,
+    ctaHits,
+    proofHits,
+    urgencyHits,
+    scores,
+    overall,
+    themes,
+  }
+}
 
-  return { records, ads, count, video, carousel, image, offerHits, ctaHits, proofHits, urgencyHits, scores, overall, themes, actions:actions.slice(0,3) }
+function getRecommendations(yourResult, ranked) {
+  if (!yourResult) return []
+  const competitors = ranked.filter(item => item.role !== 'Your Brand' && item.result)
+  if (!competitors.length) return ['Capture at least one competitor to generate evidence-based gap recommendations.']
+
+  const bestByFactor = COMPARE_FACTORS.map(factor => {
+    const best = [...competitors].sort((a,b) => b.result.scores[factor.key] - a.result.scores[factor.key])[0]
+    const yourScore = yourResult.scores[factor.key]
+    const gap = best.result.scores[factor.key] - yourScore
+    return { factor, best, yourScore, gap }
+  }).sort((a,b) => b.gap - a.gap)
+
+  return bestByFactor.slice(0,3).map(item => {
+    if (item.gap <= 0) return `${item.factor.name}: you already match or lead the captured competitors. Keep testing new variants to defend the advantage.`
+    return `${item.factor.name}: ${item.best.name} leads by ${item.gap} points (${item.best.result.scores[item.factor.key]} vs ${item.yourScore}). Review its visible ${item.factor.name.toLowerCase()} pattern and test a stronger variant.`
+  })
 }
 
 function ScoutLogo() {
@@ -142,82 +171,136 @@ function ScoutLogo() {
   </div>
 }
 
+function emptyBrand(role) {
+  return { role, name:'', country:'TH', raw:'', source:'', capturedAt:'' }
+}
+
 export default function AdsLibraryPage() {
-  const [brand, setBrand] = useState('')
-  const [country, setCountry] = useState('TH')
-  const [activeCount, setActiveCount] = useState('')
-  const [adText, setAdText] = useState('')
-  const [result, setResult] = useState(null)
-  const [captureStatus, setCaptureStatus] = useState('Ready to capture')
-  const [captureSource, setCaptureSource] = useState('')
-  const [capturedAt, setCapturedAt] = useState('')
+  const [brands, setBrands] = useState([
+    emptyBrand('Your Brand'),
+    emptyBrand('Competitor 1'),
+    emptyBrand('Competitor 2'),
+    emptyBrand('Competitor 3'),
+  ])
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [captureStatus, setCaptureStatus] = useState('Ready — add your brand and 3 competitors.')
   const [bookmarklet, setBookmarklet] = useState('')
+  const [hydrated, setHydrated] = useState(false)
 
-  const libraryUrl = useMemo(() => {
-    const query = encodeURIComponent(brand.trim())
-    return `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${encodeURIComponent(country)}&q=${query}&search_type=keyword_unordered&media_type=all`
-  }, [brand, country])
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+      if (saved?.brands?.length === 4) setBrands(saved.brands)
+      if (Number.isInteger(saved?.selectedIndex)) setSelectedIndex(Math.max(0, Math.min(3, saved.selectedIndex)))
+    } catch {}
+    setHydrated(true)
+  }, [])
 
-  const importCapture = (raw, source = 'Meta Ads Library') => {
+  useEffect(() => {
+    if (!hydrated) return
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ brands, selectedIndex })) } catch {}
+  }, [brands, selectedIndex, hydrated])
+
+  const results = useMemo(() => brands.map(brand => analyzeAds(brand.raw)), [brands])
+
+  const ranked = useMemo(() => brands
+    .map((brand, index) => ({ ...brand, index, result:results[index], name:brand.name.trim() || brand.role }))
+    .filter(item => item.result)
+    .sort((a,b) => b.result.overall - a.result.overall), [brands, results])
+
+  const recommendations = useMemo(() => getRecommendations(results[0], ranked), [results, ranked])
+
+  const updateBrand = (index, patch) => {
+    setBrands(current => current.map((item, i) => i === index ? { ...item, ...patch } : item))
+  }
+
+  const libraryUrl = brand => {
+    const query = encodeURIComponent(brand.name.trim())
+    return `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${encodeURIComponent(brand.country)}&q=${query}&search_type=keyword_unordered&media_type=all`
+  }
+
+  const resolveCaptureIndex = brandHint => {
+    const hint = normalizeName(brandHint)
+    if (hint) {
+      const found = brands.findIndex(item => normalizeName(item.name) === hint)
+      if (found >= 0) return found
+    }
+    return selectedIndex
+  }
+
+  const importCapture = (raw, source='Meta Ads Library', brandHint='') => {
     const records = extractMetaAds(raw)
     if (!records.length) {
-      setCaptureStatus('No ad blocks detected — try scrolling Meta Ads Library so the ads are visible, then capture again.')
-      return
+      setCaptureStatus('No ad blocks detected. Scroll the Ads Library results until ads are visible, then capture again.')
+      return false
     }
 
+    const targetIndex = resolveCaptureIndex(brandHint)
     const normalized = records.map(item => item.text).join('\n\n---\n\n')
-    setAdText(normalized)
-    setActiveCount(String(records.length))
-    setCaptureSource(source)
-    setCapturedAt(new Date().toLocaleString())
-    setCaptureStatus(`${records.length} ads captured and analyzed automatically`)
-    setResult(analyzeAds(normalized, records.length))
+    const label = brands[targetIndex]?.name?.trim() || brands[targetIndex]?.role || `Brand ${targetIndex + 1}`
+    updateBrand(targetIndex, {
+      raw: normalized,
+      source,
+      capturedAt: new Date().toLocaleString(),
+    })
+    setSelectedIndex(targetIndex)
+    setCaptureStatus(`${records.length} ads captured for ${label}. Ranking updated automatically.`)
+    return true
   }
 
   useEffect(() => {
     const origin = window.location.origin
     const target = `${origin}/ads-library?autocapture=1`
-    const code = `javascript:(()=>{try{const payload={type:'SCOUTIQ_AD_CAPTURE',text:document.body.innerText||'',source:location.href,title:document.title};const w=window.open('${target}','scoutiq_capture');const send=()=>{try{w&&w.postMessage(payload,'${origin}')}catch(e){}};setTimeout(send,900);setTimeout(send,1900);setTimeout(send,3200)}catch(e){alert('ScoutIQ capture failed')}})()`
+    const code = `javascript:(()=>{try{const u=new URL(location.href);const payload={type:'SCOUTIQ_AD_CAPTURE_V12',text:document.body.innerText||'',source:location.href,title:document.title,searchBrand:u.searchParams.get('q')||''};const w=window.open('${target}','scoutiq_capture');const send=()=>{try{w&&w.postMessage(payload,'${origin}')}catch(e){}};setTimeout(send,900);setTimeout(send,1900);setTimeout(send,3200)}catch(e){alert('ScoutIQ capture failed')}})()`
     setBookmarklet(code)
 
     const receiveCapture = event => {
       const data = event.data
-      if (!data || data.type !== 'SCOUTIQ_AD_CAPTURE' || typeof data.text !== 'string') return
+      if (!data || data.type !== 'SCOUTIQ_AD_CAPTURE_V12' || typeof data.text !== 'string') return
       const allowed = event.origin === 'https://www.facebook.com' || event.origin.endsWith('.facebook.com') || event.origin.endsWith('.meta.com')
       if (!allowed) return
-      importCapture(data.text, data.source || 'Meta Ads Library')
+      importCapture(data.text, data.source || 'Meta Ads Library', data.searchBrand || '')
     }
 
     window.addEventListener('message', receiveCapture)
     return () => window.removeEventListener('message', receiveCapture)
-  }, [])
+  }, [brands, selectedIndex])
 
-  const run = () => {
-    const analyzed = analyzeAds(adText, activeCount)
-    setResult(analyzed)
-    if (analyzed) setCaptureStatus(`${analyzed.ads.length || analyzed.count} ads analyzed`)
-  }
-
-  const importClipboard = async () => {
+  const importClipboard = async index => {
+    setSelectedIndex(index)
     try {
       const text = await navigator.clipboard.readText()
       if (!text.trim()) {
         setCaptureStatus('Clipboard is empty.')
         return
       }
-      importCapture(text, 'Clipboard capture from Meta Ads Library')
+      importCapture(text, 'Clipboard capture from Meta Ads Library', brands[index].name)
     } catch {
-      setCaptureStatus('Clipboard permission was blocked. Paste the copied Ads Library text into the capture box instead.')
+      setCaptureStatus('Clipboard permission was blocked. Use Paste Capture for this brand instead.')
     }
   }
 
+  const pasteCapture = index => {
+    setSelectedIndex(index)
+    const pasted = window.prompt(`Paste visible Meta Ads Library text for ${brands[index].name || brands[index].role}`)
+    if (pasted) importCapture(pasted, 'Manual paste from Meta Ads Library', brands[index].name)
+  }
+
+  const clearBrand = index => {
+    updateBrand(index, { raw:'', source:'', capturedAt:'' })
+    setCaptureStatus(`${brands[index].name || brands[index].role} capture cleared.`)
+  }
+
   const clearAll = () => {
-    setAdText('')
-    setActiveCount('')
-    setResult(null)
-    setCaptureSource('')
-    setCapturedAt('')
-    setCaptureStatus('Ready to capture')
+    setBrands([
+      emptyBrand('Your Brand'),
+      emptyBrand('Competitor 1'),
+      emptyBrand('Competitor 2'),
+      emptyBrand('Competitor 3'),
+    ])
+    setSelectedIndex(0)
+    setCaptureStatus('Ready — add your brand and 3 competitors.')
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }
 
   return <div className="appShell">
@@ -225,84 +308,96 @@ export default function AdsLibraryPage() {
       <ScoutLogo />
       <nav>
         <a href="/" style={navLinkStyle}><span className="navIcon">⌂</span><span className="navLabel">Dashboard</span></a>
-        <a href="/" style={navLinkStyle}><span className="navIcon">◉</span><span className="navLabel">Analyze</span></a>
         <a href="/instagram" style={navLinkStyle}><span className="navIcon">◎</span><span className="navLabel">Instagram Analytics</span></a>
-        <a href="/ads-library" style={{...navLinkStyle, ...navActiveStyle}}><span className="navIcon">✦</span><span className="navLabel">Ads Library</span></a>
+        <a href="/ads-library" style={{...navLinkStyle,...navActiveStyle}}><span className="navIcon">✦</span><span className="navLabel">Ads Competitor</span></a>
       </nav>
-      <div className="sideCard"><small>AUTO ADS CAPTURE</small><strong>Brand → Ads →<br/>Patterns → Action.</strong><p>Capture multiple visible Meta ads and analyze them in one workflow.</p><span>ScoutIQ v1.1</span></div>
+      <div className="sideCard"><small>AUTO ADS COMPETITOR</small><strong>4 Brands → Ads →<br/>Compare → Rank.</strong><p>Capture your brand and three competitors, then compare visible paid-media signals.</p><span>ScoutIQ v1.2</span></div>
     </aside>
 
     <main className="main">
       <header className="topbar">
-        <div><small>PAID MEDIA INTELLIGENCE</small><h1>Auto Ads Capture v1.1</h1></div>
+        <div><small>PAID MEDIA COMPETITOR INTELLIGENCE</small><h1>Auto Ads Competitor v1.2</h1></div>
         <div className="account"><div className="avatar">S</div><div><b>ScoutIQ</b><span>Social Media Analytics Platform</span><span>Built by Rank-Path</span></div></div>
       </header>
 
       <section className="panel" style={{padding:28}}>
-        <div className="panelHead"><div><small>META ADS LIBRARY</small><h2>Brand / Page → capture multiple ads → analyze automatically</h2></div><span className="pill">Browser Capture v1.1</span></div>
-        <p className="muted" style={{maxWidth:920}}>ScoutIQ captures the ads that are visibly loaded in your Meta Ads Library browser session, separates the ad blocks, detects formats and message patterns, then runs the analysis automatically. It does not access your Facebook password, cookies or hidden ad data.</p>
+        <div className="panelHead"><div><small>4-BRAND WORKFLOW</small><h2>Your Brand + 3 Competitors → Capture → Compare → Rank</h2></div><span className="pill">Auto ranking</span></div>
+        <p className="muted" style={{maxWidth:960}}>Use the same country and visible Ads Library view for all four brands. ScoutIQ compares Hook, Offer, CTA, Creative and Proof using the captured public ad content. Missing hidden metrics remain Unavailable.</p>
 
-        <div style={{display:'grid',gridTemplateColumns:'minmax(220px,1.6fr) minmax(120px,.5fr)',gap:12,marginTop:20}}>
-          <label style={fieldStyle}><span style={labelStyle}>Brand / Page name</span><input value={brand} onChange={e=>setBrand(e.target.value)} placeholder="e.g. The Art Hospital" style={inputStyle}/></label>
-          <label style={fieldStyle}><span style={labelStyle}>Country</span><select value={country} onChange={e=>setCountry(e.target.value)} style={inputStyle}><option value="TH">Thailand</option><option value="SG">Singapore</option><option value="VN">Vietnam</option><option value="GB">United Kingdom</option><option value="US">United States</option><option value="FR">France</option></select></label>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(245px,1fr))',gap:12,marginTop:20}}>
+          {brands.map((brand,index) => {
+            const result = results[index]
+            const url = libraryUrl(brand)
+            return <article className="factorCard" key={brand.role} style={{borderColor:selectedIndex===index?'#9F91F5':'#E2E6F6'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><b>{brand.role}</b><span className="pill">{result ? `${result.overall}/100` : 'Waiting'}</span></div>
+              <label style={{...fieldStyle,marginTop:12}}><span style={labelStyle}>Brand / Page name</span><input value={brand.name} onFocus={()=>setSelectedIndex(index)} onChange={e=>updateBrand(index,{name:e.target.value})} placeholder={index===0?'e.g. The Art Hospital':`Competitor ${index}`} style={inputStyle}/></label>
+              <label style={{...fieldStyle,marginTop:10}}><span style={labelStyle}>Country</span><select value={brand.country} onChange={e=>updateBrand(index,{country:e.target.value})} style={inputStyle}><option value="TH">Thailand</option><option value="SG">Singapore</option><option value="VN">Vietnam</option><option value="GB">United Kingdom</option><option value="US">United States</option><option value="FR">France</option></select></label>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
+                <a className="secondary" href={brand.name.trim()?url:'#'} target="_blank" rel="noreferrer" onClick={()=>setSelectedIndex(index)} style={{textDecoration:'none',opacity:brand.name.trim()?1:.5,pointerEvents:brand.name.trim()?'auto':'none'}}>Open Ads Library ↗</a>
+                <button className="secondary" type="button" onClick={()=>importClipboard(index)}>Import Clipboard</button>
+                <button className="secondary" type="button" onClick={()=>pasteCapture(index)}>Paste Capture</button>
+              </div>
+              <div style={{marginTop:12,fontSize:12}}><span className="sourceText">{result ? `${result.count} ads captured` : 'No ads captured yet'}</span>{brand.capturedAt && <p className="muted" style={{margin:'6px 0 0'}}>Last capture: {brand.capturedAt}</p>}</div>
+              {result && <button className="secondary" type="button" onClick={()=>clearBrand(index)} style={{marginTop:10}}>Clear capture</button>}
+            </article>
+          })}
         </div>
 
-        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}>
-          <a className="primary" href={brand.trim() ? libraryUrl : '#'} target="_blank" rel="noreferrer" style={{textDecoration:'none',opacity:brand.trim()?1:.55,pointerEvents:brand.trim()?'auto':'none'}}>1. Open Meta Ads Library ↗</a>
-          <button className="secondary" type="button" onClick={importClipboard}>2. Import Clipboard & Auto Analyze</button>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:16}}>
+          <div className="factorCard"><b>Desktop one-click capture</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Drag this once to your bookmarks bar. Open each brand through its Ads Library button, scroll until the ads load, then click the bookmark. ScoutIQ reads the search brand from the Ads Library URL and assigns the capture automatically.</p>{bookmarklet && <a href={bookmarklet} className="secondary" style={{display:'inline-block',textDecoration:'none'}}>ScoutIQ Capture v1.2 ✦</a>}</div>
+          <div className="factorCard"><b>Capture status</b><p style={{fontSize:13,fontWeight:750,margin:'10px 0 4px'}}>{captureStatus}</p><span className="sourceText">Selected target: {brands[selectedIndex]?.name || brands[selectedIndex]?.role}</span></div>
+          <div className="factorCard"><b>Fair comparison rule</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Capture all brands with the same country, active-ad filter and similar scroll depth. A larger capture set can otherwise make a brand look artificially stronger.</p></div>
         </div>
 
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginTop:18}}>
-          <div className="factorCard"><b>Desktop: one-click capture</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Drag the button below to your bookmarks bar once. On Meta Ads Library, scroll to load the ads you want, then click the bookmark. ScoutIQ opens and analyzes all detected visible ads.</p>{bookmarklet && <a href={bookmarklet} className="secondary" style={{display:'inline-block',textDecoration:'none'}}>ScoutIQ Auto Capture ✦</a>}</div>
-          <div className="factorCard"><b>Mobile / fallback</b><p className="muted" style={{fontSize:12,lineHeight:1.5}}>Open Meta Ads Library, copy the visible page text/results, return here and tap <b>Import Clipboard & Auto Analyze</b>. You do not need to separate each ad manually.</p></div>
-          <div className="factorCard"><b>Capture status</b><p style={{fontSize:13,fontWeight:750,margin:'10px 0 4px'}}>{captureStatus}</p><span className="sourceText">{capturedAt ? `Last capture: ${capturedAt}` : 'No capture yet'}</span></div>
-        </div>
-
-        <div className="notice"><b>Important:</b> for markets such as Thailand, Meta’s official Ad Library API does not provide unrestricted programmatic access to all commercial ads. Browser Capture uses only the ads already visible to you in Meta Ads Library; missing spend, impressions, targeting and conversion data remain <b>Unavailable</b>.</div>
+        <div style={{marginTop:14}}><button className="secondary" type="button" onClick={clearAll}>Reset all 4 brands</button></div>
+        <div className="notice"><b>Data boundary:</b> ScoutIQ analyzes only visible public ad content captured from Meta Ads Library. Spend, impressions, targeting, conversions and other hidden performance metrics remain <b>Unavailable</b>.</div>
       </section>
 
       <section className="panel" style={{marginTop:18}}>
-        <div className="panelHead"><div><small>CAPTURED ADS</small><h2>Auto-detected ad blocks</h2></div><span className="pill">{result ? `${result.ads.length} detected` : 'Waiting for capture'}</span></div>
-        <textarea value={adText} onChange={e=>setAdText(e.target.value)} placeholder={'Captured ads will appear here automatically. You can also paste Ads Library text here as a fallback.'} style={{...inputStyle,width:'100%',minHeight:190,resize:'vertical',lineHeight:1.5,marginTop:14}}/>
-        <div style={{display:'flex',gap:10,marginTop:12,flexWrap:'wrap'}}><button className="primary" type="button" onClick={run}>Analyze Captured Ads</button><button className="secondary" type="button" onClick={clearAll}>Clear</button>{captureSource && <span className="muted" style={{fontSize:12,alignSelf:'center'}}>Source: {captureSource}</span>}</div>
+        <div className="panelHead"><div><small>AUTO RANKING</small><h2>Ads competitor leaderboard</h2></div><span className="pill">Hook · Offer · CTA · Creative · Proof</span></div>
+        {!ranked.length && <p className="muted">Capture at least one brand to start. The leaderboard updates automatically after every capture.</p>}
+        <div className="bars">{ranked.map((item,index)=><div className="barRow" key={`${item.role}-${item.name}`}><span><b className={index===0?'rankTop':'rankMuted'}>#{index+1}</b>{item.name}</span><div className="track"><i style={{width:`${item.result.overall}%`}}/></div><b>{item.result.overall}</b></div>)}</div>
       </section>
 
-      {!result && <section className="panel" style={{marginTop:18}}><small>WHAT SCOUTIQ CHECKS</small><h2>Ad analysis framework</h2><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginTop:16}}>{FACTORS.map(f=><div className="factorCard" key={f.key}><div style={{display:'flex',justifyContent:'space-between',gap:10}}><b>{f.name}</b><span className="pill">{f.weight}%</span></div><p className="muted" style={{fontSize:12}}>{factorCopy[f.key]}</p></div>)}</div></section>}
-
-      {result && <>
-        <section className="metricGrid">
-          <Metric label="Ads captured" value={result.ads.length} sub="Visible ad blocks detected" />
-          <Metric label="Active / observed" value={result.count} sub="Current capture set" />
-          <Metric label="Video / Reels" value={result.video} sub="Detected creative format" />
-          <Metric label="ScoutIQ Ads Score" value={`${result.overall}/100`} sub="Rule-based v1.1" />
-        </section>
-
-        <section className="twoCol">
-          <div className="panel">
-            <div className="panelHead"><div><small>SCORE BREAKDOWN</small><h2>Paid Ads Activity</h2></div><span className="pill">Public signals</span></div>
-            <div className="bars">{FACTORS.map(f=><div className="barRow" key={f.key}><span>{f.name}</span><div className="track"><i style={{width:`${result.scores[f.key]}%`}}/></div><b>{result.scores[f.key]}</b></div>)}</div>
-          </div>
-          <div className="panel">
-            <div className="panelHead"><div><small>MESSAGE PATTERNS</small><h2>What the brand is pushing</h2></div><span className="pill">Observed</span></div>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:16}}>{(result.themes.length ? result.themes : ['No strong theme detected']).map(theme=><span className="pill" key={theme}>{theme}</span>)}</div>
-            <div className="detailRow"><span className="muted">Offer signals</span><b>{result.offerHits}</b></div>
-            <div className="detailRow"><span className="muted">CTA signals</span><b>{result.ctaHits}</b></div>
-            <div className="detailRow"><span className="muted">Trust / proof</span><b>{result.proofHits}</b></div>
-            <div className="detailRow"><span className="muted">Urgency signals</span><b>{result.urgencyHits}</b></div>
+      {ranked.length > 0 && <>
+        <section className="panel" style={{marginTop:18}}>
+          <div className="panelHead"><div><small>FACTOR COMPARISON</small><h2>Where each brand wins</h2></div><span className="pill">Equal 20% weights</span></div>
+          <div style={{overflowX:'auto',marginTop:14}}>
+            <table style={{width:'100%',borderCollapse:'collapse',minWidth:720,fontSize:12}}>
+              <thead><tr><th style={thStyle}>Factor</th>{brands.map((brand,index)=><th key={brand.role} style={thStyle}>{brand.name || brand.role}</th>)}</tr></thead>
+              <tbody>{COMPARE_FACTORS.map(factor => {
+                const available = results.map(result => result?.scores[factor.key]).filter(value => Number.isFinite(value))
+                const best = available.length ? Math.max(...available) : null
+                return <tr key={factor.key}><td style={tdStyle}><b>{factor.name}</b><div className="muted" style={{fontSize:10}}>{factor.description}</div></td>{results.map((result,index) => {
+                  const value = result?.scores[factor.key]
+                  const isBest = Number.isFinite(value) && value === best
+                  return <td key={`${factor.key}-${index}`} style={{...tdStyle,fontWeight:isBest?850:650,color:isBest?'#5C4DE8':'#0D1B3D'}}>{Number.isFinite(value)?value:'Unavailable'}{isBest?' ★':''}</td>
+                })}</tr>
+              })}</tbody>
+              <tfoot><tr><td style={tdStyle}><b>Overall</b></td>{results.map((result,index)=><td key={`overall-${index}`} style={tdStyle}><b>{result ? `${result.overall}/100` : 'Unavailable'}</b></td>)}</tr></tfoot>
+            </table>
           </div>
         </section>
 
         <section className="twoCol">
-          <div className="panel"><div className="panelHead"><div><small>CREATIVE MIX</small><h2>Format distribution</h2></div><span className="pill">Auto detected</span></div><div className="metricList" style={{marginTop:16}}><div><span>Video / Reels</span><b>{result.video}</b></div><div><span>Carousel</span><b>{result.carousel}</b></div><div><span>Image / Other</span><b>{result.image}</b></div></div></div>
-          <div className="panel"><div className="panelHead"><div><small>NEXT ACTIONS</small><h2>3 recommended moves</h2></div><span className="pill">Evidence-based</span></div>{result.actions.map((action,i)=><div className="insight" key={action}><span className="signal up">{i+1}</span><div><b>{action}</b><p>Based on the ad copy and public signals captured in this analysis.</p></div></div>)}</div>
+          <div className="panel">
+            <div className="panelHead"><div><small>YOUR BRAND GAPS</small><h2>3 prioritized moves</h2></div><span className="pill">Evidence-based</span></div>
+            {(recommendations.length?recommendations:['Capture Your Brand to generate recommendations.']).map((action,index)=><div className="insight" key={`${action}-${index}`}><span className="signal up">{index+1}</span><div><b>{action}</b><p>Based only on the public ad content captured in this comparison set.</p></div></div>)}
+          </div>
+          <div className="panel">
+            <div className="panelHead"><div><small>LEADER PATTERNS</small><h2>What the top brand is pushing</h2></div><span className="pill">Observed</span></div>
+            {ranked[0] && <><p style={{fontWeight:800,marginBottom:8}}>{ranked[0].name} · {ranked[0].result.overall}/100</p><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{(ranked[0].result.themes.length?ranked[0].result.themes:['No strong theme detected']).map(theme=><span className="pill" key={theme}>{theme}</span>)}</div><div className="metricList" style={{marginTop:16}}><div><span>Ads captured</span><b>{ranked[0].result.count}</b></div><div><span>Video / Reels</span><b>{ranked[0].result.video}</b></div><div><span>Carousel</span><b>{ranked[0].result.carousel}</b></div><div><span>Image / Other</span><b>{ranked[0].result.image}</b></div></div></>}
+          </div>
         </section>
 
         <section className="panel" style={{marginTop:18}}>
-          <div className="panelHead"><div><small>CAPTURE PREVIEW</small><h2>Ads detected in this session</h2></div><span className="pill">{result.records.length} blocks</span></div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:16}}>{result.records.slice(0,12).map((record,index)=><article className="factorCard" key={record.id}><div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><b>Ad {index+1}</b><span className="pill">{record.libraryId ? `ID ${record.libraryId}` : record.status}</span></div><p className="muted" style={{fontSize:12,lineHeight:1.5,whiteSpace:'pre-line',maxHeight:130,overflow:'hidden'}}>{record.text.slice(0,420)}</p>{record.platforms.length>0 && <span className="sourceText">{record.platforms.join(' · ')}</span>}</article>)}</div>
+          <div className="panelHead"><div><small>CAPTURE QUALITY CHECK</small><h2>Recheck before trusting the ranking</h2></div><span className="pill">QA</span></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginTop:14}}>{brands.map((brand,index)=>{
+            const result=results[index]
+            const status = !brand.name.trim() ? 'Missing brand name' : !result ? 'No capture' : result.count < 3 ? 'Low sample' : 'Ready'
+            return <div className="factorCard" key={`qa-${brand.role}`}><b>{brand.name || brand.role}</b><p className="muted" style={{fontSize:12}}>{status === 'Ready' ? `${result.count} ad blocks detected. Capture is usable for directional comparison.` : status === 'Low sample' ? `Only ${result.count} ad block(s) detected. Capture more before relying on the rank.` : status === 'No capture' ? 'No Ads Library content has been captured yet.' : 'Add the brand/page name before capture.'}</p><span className="sourceText">Status: {status}</span></div>
+          })}</div>
         </section>
-
-        <section className="panel" style={{marginTop:18}}><div className="panelHead"><div><small>DATA QUALITY</small><h2>Source & limitations</h2></div><span className="pill">Meta Ads Library + ScoutIQ</span></div><p className="muted" style={{fontSize:12}}>Source: visible public Meta Ads Library content captured from the user’s browser session. ScoutIQ does not infer hidden spend, impressions, audience, conversion or performance data. Any unavailable metric remains <b>Unavailable</b>.</p></section>
       </>}
     </main>
   </div>
@@ -312,15 +407,6 @@ const navLinkStyle = {color:'#C7CEE1',textDecoration:'none',padding:'11px 12px',
 const navActiveStyle = {background:'linear-gradient(135deg,#2563EB 0%,#7C3AED 100%)',color:'#fff'}
 const fieldStyle = {display:'grid',gap:7}
 const labelStyle = {fontSize:12,fontWeight:750}
-const inputStyle = {border:'1px solid #E2E6F6',borderRadius:12,padding:'12px',font:'inherit',background:'#fff',color:'#0D1B3D'}
-const factorCopy = {
-  volume:'How many active ad variations the brand is currently running.',
-  creative:'Mix of video/Reels, carousel and static creative.',
-  hook:'Clarity and strength of the opening line or first-message hook.',
-  offer:'Benefit, promotion, urgency and call-to-action clarity.',
-  proof:'Reviews, results, cases, before/after and expert credibility.',
-}
-
-function Metric({label,value,sub}) {
-  return <div className="panel metricCard"><small>{label.toUpperCase()}</small><strong>{value}</strong><span style={{color:'#667093'}}>{sub}</span></div>
-}
+const inputStyle = {border:'1px solid #E2E6F6',borderRadius:12,padding:'12px',font:'inherit',background:'#fff',color:'#0D1B3D',width:'100%'}
+const thStyle = {textAlign:'left',padding:'11px 10px',borderBottom:'1px solid #E2E6F6',color:'#667093',fontSize:10,textTransform:'uppercase',letterSpacing:'.05em'}
+const tdStyle = {padding:'12px 10px',borderBottom:'1px solid #EEF0F5',verticalAlign:'top'}
