@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 const navItems = ['แดชบอร์ด', 'วิเคราะห์', 'คู่แข่ง', 'คอนเทนต์', 'คลังโฆษณา', 'รายงาน', 'ตั้งค่า']
 const navIcons = { 'แดชบอร์ด':'⌂', 'วิเคราะห์':'◉', 'คู่แข่ง':'♙', 'คอนเทนต์':'▤', 'คลังโฆษณา':'✦', 'รายงาน':'◔', 'ตั้งค่า':'⚙' }
-const defaultCompetitors = ['inZ Hospital', 'Lovely Eye & Skin', 'Beproud Clinic']
+const defaultCompetitors = ['', '', '']
 const demoScores = [82, 79, 74]
 
 const comparisonFactors = [
@@ -59,7 +59,7 @@ export default function ThaiScoutIQ() {
   const [activePage, setActivePage] = useState('แดชบอร์ด')
   const [url, setUrl] = useState('https://www.facebook.com/share/1DdhEhqgRU/')
   const [competitorInputs, setCompetitorInputs] = useState(defaultCompetitors)
-  const [competitors, setCompetitors] = useState(defaultCompetitors)
+  const [competitors, setCompetitors] = useState([])
   const [hasCompared, setHasCompared] = useState(false)
   const [insights, setInsights] = useState(starterInsights)
 
@@ -78,15 +78,20 @@ export default function ThaiScoutIQ() {
     try { localStorage.setItem('scoutiq-th-content-insights', JSON.stringify(insights)) } catch {}
   }, [insights])
 
-  const comparison = useMemo(() => [
-    ['Youngdo Clinic', 76],
-    ...competitors.map((name, index) => [displayBusinessName(name, `คู่แข่ง ${index + 1}`), demoScores[index]]),
-  ].sort((a,b)=>b[1]-a[1]), [competitors])
+  const comparison = useMemo(() => {
+    const entered = competitors.filter(name => name && name.trim())
+    if (!hasCompared || entered.length === 0) return []
+    return [
+      ['Youngdo Clinic', 76],
+      ...entered.map((name, index) => [displayBusinessName(name, ''), demoScores[index] ?? 70]),
+    ].sort((a,b)=>b[1]-a[1])
+  }, [competitors, hasCompared])
 
   const updateCompetitor = (index, value) => setCompetitorInputs(current => current.map((item,i)=>i===index?value:item))
   const compareThree = () => {
-    setCompetitors(competitorInputs.map((item,index)=>item.trim() || `คู่แข่ง ${index+1}`))
-    setHasCompared(true)
+    const entered = competitorInputs.map(item => item.trim()).filter(Boolean)
+    setCompetitors(entered)
+    setHasCompared(entered.length > 0)
   }
 
   return (
@@ -132,7 +137,7 @@ function DashboardTH({url,setUrl,setActivePage,comparison}) {
       <FeatureTH icon="✦" title="คำแนะนำที่นำไปใช้ได้" text="ดูจุดแข็ง จุดอ่อน และสิ่งที่ควรปรับต่อ" onClick={()=>setActivePage('วิเคราะห์')}/>
     </section>
     <section className="twoCol">
-      <div className="panel"><div className="panelHead"><div><small>BENCHMARK</small><h2>เปรียบเทียบคู่แข่ง</h2></div><span className="pill">คะแนนสูงสุดก่อน</span></div><ComparisonBarsTH comparison={comparison}/><button className="secondary" type="button" style={{marginTop:18}} onClick={()=>setActivePage('คู่แข่ง')}>ดูรายละเอียดการเปรียบเทียบ</button></div>
+      <div className="panel"><div className="panelHead"><div><small>BENCHMARK</small><h2>เปรียบเทียบคู่แข่ง</h2></div><span className="pill">คะแนนสูงสุดก่อน</span></div>{comparison.length ? <ComparisonBarsTH comparison={comparison}/> : <p className="muted" style={{marginTop:16}}>ยังไม่มีข้อมูลคู่แข่ง</p>}<button className="secondary" type="button" style={{marginTop:18}} onClick={()=>setActivePage('คู่แข่ง')}>ดูรายละเอียดการเปรียบเทียบ</button></div>
       <div className="panel"><div className="panelHead"><div><small>AI SIGNALS</small><h2>Opportunity Radar</h2></div><span className="pill">AI</span></div><InsightTH type="up" title="Reels กำลังเด่น" text="คอนเทนต์วิดีโอทำผลงานดีกว่าโพสต์ภาพนิ่ง"/><InsightTH type="up" title="รีวิวช่วยสร้าง Engagement" text="Before/After และรีวิวลูกค้าช่วยเพิ่มความน่าเชื่อถือ"/><InsightTH type="down" title="Facebook SEO ยังมีช่องว่าง" text="ชื่อเพจและคีย์เวิร์ดใน About ยังปรับได้อีก"/></div>
     </section>
   </>
@@ -166,7 +171,7 @@ function AnalyzeTH({url,setUrl,setActivePage}) {
 function CompetitorsTH({competitorInputs,updateCompetitor,compareThree,comparison,hasCompared}) {
   return <>
     <section className="panel" style={{padding:28}}><div className="panelHead"><div><small>COMPETITOR SETUP</small><h2>เพิ่มคู่แข่ง 3 ธุรกิจ</h2></div><span className="pill">กรอกเอง</span></div><p className="muted"><b>ธุรกิจของคุณ:</b> Youngdo Clinic · ใส่ชื่อธุรกิจหรือ Facebook Page URL ของคู่แข่ง 3 ราย</p><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14,marginTop:22}}>{competitorInputs.map((value,index)=><label key={index} style={{display:'grid',gap:7}}><span style={{fontSize:12,fontWeight:750}}>คู่แข่ง {index+1}</span><input value={value} onChange={e=>updateCompetitor(index,e.target.value)} placeholder="ชื่อธุรกิจหรือ Facebook URL" style={inputStyle}/></label>)}</div><div style={{display:'flex',alignItems:'center',gap:12,marginTop:18,flexWrap:'wrap'}}><button className="primary" type="button" onClick={compareThree}>เปรียบเทียบ 3 ธุรกิจ</button><span className="muted" style={{fontSize:12}}>ระบบจะเรียงคะแนนจากสูงสุดไปต่ำสุดอัตโนมัติ</span></div></section>
-    <section className="panel" style={{marginTop:18}}><div className="panelHead"><div><small>BENCHMARK</small><h2>{hasCompared?'อัปเดตการเปรียบเทียบแล้ว':'เปรียบเทียบคู่แข่ง'}</h2></div><span className="pill">ScoutIQ Score /100</span></div><ComparisonBarsTH comparison={comparison}/></section>
+    <section className="panel" style={{marginTop:18}}><div className="panelHead"><div><small>BENCHMARK</small><h2>{hasCompared?'อัปเดตการเปรียบเทียบแล้ว':'เปรียบเทียบคู่แข่ง'}</h2></div><span className="pill">ScoutIQ Score /100</span></div>{comparison.length ? <ComparisonBarsTH comparison={comparison}/> : <p className="muted" style={{marginTop:16}}>ยังไม่มีข้อมูลคู่แข่ง — กรอกชื่อธุรกิจหรือ Facebook Page URL ก่อน แล้วกด “เปรียบเทียบ 3 ธุรกิจ”</p>}</section>
     <section className="panel" style={{marginTop:18}}><div className="panelHead"><div><small>SCORING METHOD</small><h2>ScoutIQ คำนวณคะแนนอย่างไร</h2></div><span className="pill">ใช้คำนวณอะไร</span></div><p className="muted" style={{maxWidth:850}}>เปรียบเทียบธุรกิจของคุณกับคู่แข่ง 3 รายใน 7 ปัจจัย เพื่อดูจุดแข็ง จุดอ่อน ช่องว่างอันดับ และคำแนะนำที่ควรทำต่อ</p><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12,marginTop:18}}>{comparisonFactors.map(f=><article key={f.name} className="factorCard"><div style={{display:'flex',justifyContent:'space-between',gap:10}}><b>{f.name}</b><span className="pill">{f.weight}%</span></div><p className="muted" style={{fontSize:12,lineHeight:1.5,minHeight:54}}>{f.description}</p><span className="sourceText">แหล่งข้อมูล: {f.source}</span></article>)}</div><div className="notice"><b>Prototype note:</b> คะแนนคู่แข่งปัจจุบันเป็น Demo จนกว่าจะเชื่อม Metricool + Meta Ads Library</div></section>
   </>
 }
